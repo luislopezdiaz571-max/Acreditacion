@@ -1,0 +1,48 @@
+{
+  "entities": {
+    "Evidence": {
+      "title": "Evidence",
+      "description": "Represents an accreditation evidence document",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "date": { "type": "string" },
+        "factorId": { "type": "number" },
+        "characteristicId": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string" },
+        "supportLink": { "type": "string" },
+        "status": { "type": "string", "enum": ["Completo", "Parcial", "Pendiente"] },
+        "observations": { "type": "string" },
+        "responsible": { "type": "string" },
+        "source": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "date", "factorId", "characteristicId", "status"]
+    },
+    "AuthorizedUser": {
+      "title": "Authorized User",
+      "description": "System user with restricted access",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "authorizedAt": { "type": "string" },
+        "authorizedBy": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "evidences": {
+      "schema": "Evidence",
+      "description": "Collection of all accreditation evidences"
+    },
+    "authorized_users": {
+      "schema": "AuthorizedUser",
+      "description": "Whitelist of users allowed to access the system"
+    }
+  }
+}

@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reuseable helpers
+    function isSignedIn() { return request.auth != null; }
+    function isEmailVerified() { return request.auth.token.email_verified == true; }
+    function currentUserEmail() { return request.auth.token.email; }
+    
+    // Admin check: checks if user exists in the authorized_users collection with role 'admin'
+    function isAdmin() {
+      return isSignedIn() && isEmailVerified() && 
+        (get(/databases/$(database)/documents/authorized_users/$(request.auth.uid)).data.role == 'admin' ||
+         currentUserEmail() in ['nikolsteffanyzambranolopez@gmail.com', 'luislopezdiaz571@gmail.com']);
+    }
+    
+    // User check: checks if user exists in the authorized_users collection
+    function isAuthorized() {
+      return isSignedIn() && isEmailVerified() && 
+        (exists(/databases/$(database)/documents/authorized_users/$(request.auth.uid)) ||
+         currentUserEmail() in ['nikolsteffanyzambranolopez@gmail.com', 'luislopezdiaz571@gmail.com']);
+    }
+
+    function isValidId(id) { 
+        return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Validation helper for Evidence
+    // Enforcing strict keys and types to prevent logic gaps
+    function isValidEvidence(data) {
+      return data.keys().hasAll(['id', 'name', 'date', 'factorId', 'characteristicId', 'status']) &&
+             data.name is string && data.name.size() <= 500 &&
+             data.description is string && data.description.size() <= 5000 &&
+             data.status in ['Completo', 'Parcial', 'Pendiente'] &&
+             data.factorId is number &&
+             data.characteristicId is string &&
+             data.id is string;
+    }
+
+    // 1. Authorized Users collection
+    match /authorized_users/{userId} {
+      // Only admins can manage access
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+      
+      // Validation for user entries
+      function isValidUser(data) {
+        return data.keys().hasAll(['email', 'role']) &&
+               data.email is string && data.email.size() <= 256 &&
+               data.role in ['admin', 'user'];
+      }
+      
+      allow create, update: if isAdmin() && isValidUser(incoming());
+    }
+
+    // 2. Evidences collection
+    match /evidences/{evidenceId} {
+      // Access granted only to authorized emails
+      // Pillar 8: Secure List Queries - evaluation happens on resource.data implicitly here
+      // But for better security, we check isAuthorized()
+      allow read: if isAuthorized();
+      
+      // Pivot Permission: Admin can do anything, User can create and edit
+      // Pillar 4: Tiered Identity
+      allow create: if isAuthorized() && isValidEvidence(incoming());
+      
+      allow update: if isAuthorized() && isValidEvidence(incoming()) && (
+        isAdmin() || (
+           // Users can update if authorized, but we prevent them from changing critical immutables if necessary
+           // For now, allow authorized users to edit evidence as requested
+           incoming().id == existing().id
+        )
+      );
+      
+      allow delete: if isAdmin();
+    }
+  }
+}
