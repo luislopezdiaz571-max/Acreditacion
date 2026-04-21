@@ -98,28 +98,6 @@ export default function EvidenceForm({ onSave, onCancel, initialData }: Evidence
       </div>
 
       <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[85vh] overflow-y-auto bg-white">
-        {/* Acceso Rápido al Drive General */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in slide-in-from-top-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md">
-              <FolderOpen size={20} />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-blue-900 uppercase tracking-tight">Carpeta General de Evidencias</h3>
-              <p className="text-[10px] text-blue-600 font-medium">Accede al repositorio organizado por factores y características</p>
-            </div>
-          </div>
-          <a 
-            href={settings.generalDriveLink} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto px-5 py-2 bg-blue-600 text-white text-[11px] font-bold uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-md active:scale-95"
-          >
-            Abrir Carpeta General
-            <ExternalLink size={14} />
-          </a>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1 md:col-span-2">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre de la actividad / Evento</label>
