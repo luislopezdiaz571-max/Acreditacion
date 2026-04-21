@@ -61,7 +61,7 @@ export default function MatrixView({ evidences, filterYear, availableYears, onYe
       <div className="space-y-16">
         {FACTORS.filter(f => !activeFactor || f.id === activeFactor).map(factor => {
           const factorChars = CHARACTERISTICS.filter(c => c.factorId === factor.id);
-          const factorEvidenceCount = evidences.filter(e => e.factorId === factor.id).length;
+          const factorEvidenceCount = evidences.filter(e => e.classifications.some(cl => cl.factorId === factor.id)).length;
 
           return (
             <section key={factor.id} className="scroll-mt-10 animate-in slide-in-from-bottom-4 duration-700">
@@ -85,7 +85,7 @@ export default function MatrixView({ evidences, filterYear, availableYears, onYe
 
               <div className="grid grid-cols-1 gap-4">
                 {factorChars.map(char => {
-                  const charEvidences = evidences.filter(e => e.characteristicId === char.id);
+                  const charEvidences = evidences.filter(e => e.classifications.some(cl => cl.characteristicId === char.id));
                   const isActive = expandedChar === char.id;
 
                   return (
@@ -209,6 +209,13 @@ function EvidenceCompactCard({ evidence }: { evidence: Evidence }) {
         <div className="flex justify-between items-start">
           <div className="flex flex-col gap-2">
             <StatusBadge status={evidence.status} />
+            <div className="flex flex-wrap gap-1.5">
+              {evidence.classifications.map((cl, idx) => (
+                <span key={idx} className="text-[8px] font-black py-0.5 px-1.5 bg-blue-50 text-blue-600 rounded border border-blue-200 uppercase tracking-tight">
+                  F{cl.factorId} • {cl.characteristicId}
+                </span>
+              ))}
+            </div>
             <div className="flex flex-wrap gap-1">
                {evidence.programs.map(p => (
                  <span key={p} className="text-[8px] font-black py-0.5 px-1.5 bg-slate-100 text-slate-500 rounded border border-slate-200 uppercase tracking-tight">

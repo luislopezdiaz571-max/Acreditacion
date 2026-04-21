@@ -15,14 +15,18 @@ export interface Factor {
 
 export type EvidenceStatus = "Completo" | "Parcial" | "Pendiente";
 
+export interface EvidenceClassification {
+  factorId: number;
+  characteristicId: string;
+}
+
 export interface Evidence {
   id: string;
   year: number;
   date?: string;
   name: string;
   programs: string[]; // Selection of academic programs
-  factorId: number;
-  characteristicId: string;
+  classifications: EvidenceClassification[]; // Supports multiple factor/characteristic associations
   description: string;
   type: string;
   supportLink: string;

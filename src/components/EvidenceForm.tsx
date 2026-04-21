@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { Evidence, EvidenceStatus, AcademicProgramId } from '../types';
+import { Evidence, EvidenceStatus, AcademicProgramId, EvidenceClassification } from '../types';
 import { FACTORS, CHARACTERISTICS, EVIDENCE_TYPES, PROGRAMS } from '../constants';
 import { generateId, cn } from '../utils';
-import { Save, X, Info, Sparkles, ExternalLink, FolderOpen, Check } from 'lucide-react';
+import { 
+  Save, X, Info, Sparkles, ExternalLink, FolderOpen, Check, Plus, Trash2, Layers 
+} from 'lucide-react';
 import { useSettings } from '../lib/SettingsContext';
 
 interface EvidenceFormProps {
@@ -15,14 +17,18 @@ interface EvidenceFormProps {
 
 export default function EvidenceForm({ onSave, onCancel, initialData, currentProgram }: EvidenceFormProps) {
   const { settings } = useSettings();
+  
+  // Initialize with at least one classification
+  const initialClassifications: EvidenceClassification[] = initialData?.classifications || [
+    { factorId: 1, characteristicId: 'C1' }
+  ];
+
   const [formData, setFormData] = useState<Partial<Evidence>>({
     id: initialData?.id || generateId(),
     year: initialData?.year || new Date().getFullYear(),
     date: initialData?.date || '',
     name: initialData?.name || '',
-    programs: initialData?.programs || (currentProgram ? [currentProgram] : []),
-    factorId: initialData?.factorId || 1,
-    characteristicId: initialData?.characteristicId || 'C1',
+    programs: initialData?.programs || (currentProgram && currentProgram !== 'consolidated' ? [currentProgram] : []),
     description: initialData?.description || '',
     type: initialData?.type || EVIDENCE_TYPES[0],
     supportLink: initialData?.supportLink || '',
@@ -33,16 +39,34 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
     tags: initialData?.tags || [],
   });
 
+  const [classifications, setClassifications] = useState<EvidenceClassification[]>(initialClassifications);
   const [tagInput, setTagInput] = useState('');
   const [suggesting, setSuggesting] = useState(false);
 
-  useEffect(() => {
-    // Automatically filter characteristics when factor changes
-    const factor = FACTORS.find(f => f.id === Number(formData.factorId));
-    if (factor && !factor.characteristics.includes(formData.characteristicId as string)) {
-      setFormData(prev => ({ ...prev, characteristicId: factor.characteristics[0] }));
+  // Synchronize characteristic when factor changes in any classification
+  const updateClassification = (index: number, field: keyof EvidenceClassification, value: any) => {
+    const updated = [...classifications];
+    if (field === 'factorId') {
+      const factorId = Number(value);
+      const factor = FACTORS.find(f => f.id === factorId);
+      updated[index] = { 
+        factorId, 
+        characteristicId: factor ? factor.characteristics[0] : '' 
+      };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
     }
-  }, [formData.factorId]);
+    setClassifications(updated);
+  };
+
+  const addClassification = () => {
+    setClassifications([...classifications, { factorId: 1, characteristicId: 'C1' }]);
+  };
+
+  const removeClassification = (index: number) => {
+    if (classifications.length <= 1) return;
+    setClassifications(classifications.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +77,7 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
 
     onSave({
       ...formData as Evidence,
+      classifications,
       createdAt: initialData?.createdAt || new Date().toISOString(),
     });
   };
@@ -82,17 +107,18 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
     setTimeout(() => {
       const nameLower = formData.name?.toLowerCase() || '';
       if (nameLower.includes('concierto') || nameLower.includes('recital')) {
-        setFormData(prev => ({ ...prev, factorId: 7, characteristicId: 'C28', type: 'Concierto' }));
+        setClassifications([{ factorId: 7, characteristicId: 'C28' }]);
+        setFormData(prev => ({ ...prev, type: 'Concierto' }));
       } else if (nameLower.includes('investigación') || nameLower.includes('semillero')) {
-        setFormData(prev => ({ ...prev, factorId: 8, characteristicId: 'C30', type: 'Investigación' }));
+        setClassifications([{ factorId: 8, characteristicId: 'C30' }]);
+        setFormData(prev => ({ ...prev, type: 'Investigación' }));
       } else if (nameLower.includes('egresado') || nameLower.includes('graduado')) {
-        setFormData(prev => ({ ...prev, factorId: 4, characteristicId: 'C15', type: 'Egreso' }));
+        setClassifications([{ factorId: 4, characteristicId: 'C15' }]);
+        setFormData(prev => ({ ...prev, type: 'Egreso' }));
       }
       setSuggesting(false);
     }, 800);
   };
-
-  const availableCharacteristics = CHARACTERISTICS.filter(c => c.factorId === Number(formData.factorId));
 
   return (
     <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300">
@@ -228,42 +254,78 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
             </div>
           </div>
 
-          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Factor de Acreditación</label>
-              <select 
-                value={formData.factorId}
-                onChange={e => setFormData({...formData, factorId: Number(e.target.value)})}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
+          {/* Clasificaciones Múltiples */}
+          <div className="md:col-span-2 space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                 <Layers size={14} className="text-blue-600" /> Clasificación de Acreditación (Factores / Características)
+              </label>
+              <button 
+                type="button" 
+                onClick={addClassification}
+                className="flex items-center gap-2 text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest transition-colors"
               >
-                {FACTORS.map(f => (
-                  <option key={f.id} value={f.id}>
-                    Factor {f.id}: {f.name}
-                  </option>
-                ))}
-              </select>
+                <Plus size={14} /> Agregar otra clasificación
+              </button>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Característica CNA</label>
-              <select 
-                value={formData.characteristicId}
-                onChange={e => setFormData({...formData, characteristicId: e.target.value})}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
-              >
-                {availableCharacteristics.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.id}: {c.name.substring(0, 60)}{c.name.length > 60 ? '...' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="md:col-span-2 bg-blue-100/50 p-4 rounded-xl border border-blue-200/50">
-               <p className="text-xs text-blue-900 font-medium leading-relaxed italic">
-                 <span className="font-bold uppercase tracking-wider block mb-1 text-[10px] opacity-70">Descripción normativa:</span>
-                 {CHARACTERISTICS.find(c => c.id === formData.characteristicId)?.description}
-               </p>
+            <div className="space-y-4">
+              {classifications.map((item, index) => {
+                const availableChars = CHARACTERISTICS.filter(c => c.factorId === item.factorId);
+                const currentChar = CHARACTERISTICS.find(c => c.id === item.characteristicId);
+                
+                return (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-200 relative group animate-in slide-in-from-top-2 duration-300">
+                    {classifications.length > 1 && (
+                      <button 
+                        type="button"
+                        onClick={() => removeClassification(index)}
+                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white border border-rose-100 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100"
+                        title="Eliminar esta clasificación"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Factor {index + 1}</label>
+                      <select 
+                        value={item.factorId}
+                        onChange={e => updateClassification(index, 'factorId', Number(e.target.value))}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-bold"
+                      >
+                        {FACTORS.map(f => (
+                          <option key={f.id} value={f.id}>
+                            Factor {f.id}: {f.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Característica {index + 1}</label>
+                      <select 
+                        value={item.characteristicId}
+                        onChange={e => updateClassification(index, 'characteristicId', e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-xs font-medium"
+                      >
+                        {availableChars.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.id}: {c.name.substring(0, 60)}{c.name.length > 60 ? '...' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="md:col-span-2 bg-blue-50/50 p-3 rounded-lg border border-blue-200/30">
+                       <p className="text-[10px] text-blue-900 font-medium leading-relaxed italic line-clamp-1">
+                         <span className="font-bold uppercase tracking-wider text-[9px] opacity-70">Descripción: </span>
+                         {currentChar?.description}
+                       </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

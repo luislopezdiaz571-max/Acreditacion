@@ -39,9 +39,21 @@ function MainApp() {
   useEffect(() => {
     const q = query(collection(db, 'evidences'), orderBy('year', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const eList = snapshot.docs.map(doc => ({
-        ...doc.data()
-      })) as Evidence[];
+      const eList = snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Normalización para compatibilidad con registros antiguos
+        const classifications = data.classifications || (
+          (data.factorId && data.characteristicId) 
+            ? [{ factorId: Number(data.factorId), characteristicId: String(data.characteristicId) }] 
+            : []
+        );
+
+        return {
+          ...data,
+          id: doc.id,
+          classifications
+        } as Evidence;
+      });
       setEvidences(eList);
       setLoading(false);
     }, (error) => {

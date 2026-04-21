@@ -42,7 +42,7 @@ export default function Dashboard({ evidences, filterYear, availableYears, onYea
     const completedEvidences = evidences.filter(e => e.status === "Completo").length;
     
     // Characteristics logic
-    const charIdsWithEvidence = new Set(evidences.map(e => e.characteristicId));
+    const charIdsWithEvidence = new Set(evidences.flatMap(e => e.classifications.map(c => c.characteristicId)));
     const charsWithEvidence = charIdsWithEvidence.size;
     const totalChars = CHARACTERISTICS.length;
     const charsWithoutEvidence = totalChars - charsWithEvidence;
@@ -50,7 +50,7 @@ export default function Dashboard({ evidences, filterYear, availableYears, onYea
     // Factor logic
     const factorStats = FACTORS.map(f => {
       const charIdsInFactor = CHARACTERISTICS.filter(c => c.factorId === f.id).map(c => c.id);
-      const evidencesInFactor = evidences.filter(e => e.factorId === f.id);
+      const evidencesInFactor = evidences.filter(e => e.classifications.some(c => c.factorId === f.id));
       const charsCovered = charIdsInFactor.filter(id => charIdsWithEvidence.has(id)).length;
       const coveragePercent = charIdsInFactor.length > 0 ? (charsCovered / charIdsInFactor.length) * 100 : 0;
       

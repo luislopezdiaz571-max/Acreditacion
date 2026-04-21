@@ -40,7 +40,7 @@ export default function EvidenceList({
                          e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          e.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesFactor = filterFactor === 'all' || e.factorId === filterFactor;
+    const matchesFactor = filterFactor === 'all' || e.classifications.some(c => c.factorId === filterFactor);
     const matchesType = filterType === 'all' || e.type === filterType;
     const matchesProgram = filterProgram === 'all' || e.programs.includes(filterProgram);
 
@@ -153,17 +153,19 @@ function EvidenceCard({ evidence, onEdit, onDelete }: {
   onDelete: (id: string) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const factor = FACTORS.find(f => f.id === evidence.factorId);
-  const char = CHARACTERISTICS.find(c => c.id === evidence.characteristicId);
 
   return (
     <div className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all overflow-hidden flex flex-col h-full animate-in zoom-in-95 duration-300">
       <div className="p-6 flex-1 space-y-5">
         <div className="flex justify-between items-start">
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg self-start">
-              F{evidence.factorId} • {char?.id}
-            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {evidence.classifications.map((cl, idx) => (
+                <span key={idx} className="text-[9px] font-extrabold uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">
+                  F{cl.factorId} • {cl.characteristicId}
+                </span>
+              ))}
+            </div>
             <div className="flex gap-2 flex-wrap mt-2">
                {evidence.programs.map(p => (
                  <span key={p} className="text-[9px] font-bold py-0.5 px-2 bg-slate-900 text-slate-200 rounded-md uppercase tracking-tight">
