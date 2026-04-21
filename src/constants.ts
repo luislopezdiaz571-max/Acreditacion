@@ -1,5 +1,11 @@
 
-import { Factor, Characteristic } from "./types";
+import { Factor, Characteristic, AcademicProgram } from "./types";
+
+export const PROGRAMS: AcademicProgram[] = [
+  { id: "Música Instrumental", name: "Música Instrumental" },
+  { id: "Dirección de Banda", name: "Dirección de Banda" },
+  { id: "Licenciatura en Música", name: "Licenciatura en Música" },
+];
 
 export const FACTORS: Factor[] = [
   { id: 1, name: "Proyecto educativo del programa", characteristics: ["C1", "C2"] },

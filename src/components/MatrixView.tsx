@@ -1,33 +1,56 @@
 
 import React, { useState } from 'react';
-import { Evidence, EvidenceStatus } from '../types';
+import { Evidence, EvidenceStatus, YearFilter } from '../types';
 import { FACTORS, CHARACTERISTICS } from '../constants';
-import { Search, Info, HelpCircle, CheckCircle, ChevronDown, ChevronUp, ExternalLink, Calendar, User, FileText, Tag, Database, FolderOpen } from 'lucide-react';
+import { Search, Info, HelpCircle, CheckCircle, ChevronDown, ChevronUp, ExternalLink, Calendar, User, FileText, Tag, Database, FolderOpen, Layers, Table, Bookmark } from 'lucide-react';
 import { formatDate, cn } from '../utils';
 import { useSettings } from '../lib/SettingsContext';
+import YearSelector from './YearSelector';
 
 interface MatrixViewProps {
   evidences: Evidence[];
+  filterYear: YearFilter;
+  availableYears: number[];
+  onYearChange: (filter: YearFilter) => void;
+  isConsolidated?: boolean;
 }
 
-export default function MatrixView({ evidences }: MatrixViewProps) {
+export default function MatrixView({ evidences, filterYear, availableYears, onYearChange, isConsolidated }: MatrixViewProps) {
   const { settings } = useSettings();
   const [activeFactor, setActiveFactor] = useState<number | null>(null);
   const [expandedChar, setExpandedChar] = useState<string | null>(null);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-10 animate-in fade-in duration-700">
+      {/* Header Contextual */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
+             {isConsolidated ? <Database size={24} /> : <Table size={24} />}
+          </div>
+          <div>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">
+              {isConsolidated ? 'Vista Consolidada General (Matriz)' : 'Vista General (Matriz)'}
+            </h1>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+              {isConsolidated ? 'Estructura global por factores y características' : 'Estructura por factores y características'}
+            </p>
+          </div>
+        </div>
+        <YearSelector years={availableYears} filterYear={filterYear} onYearChange={onYearChange} />
+      </div>
+
       {/* Factor Quick Navigation */}
-      <div className="flex flex-wrap gap-2 mb-10">
+      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm inline-flex flex-wrap gap-1">
         {FACTORS.map(f => (
           <button 
             key={f.id}
             onClick={() => setActiveFactor(activeFactor === f.id ? null : f.id)}
             className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all border",
+              "px-4 py-2.5 rounded-xl text-[10px] font-extrabold uppercase tracking-widest transition-all",
               activeFactor === f.id 
-                ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20" 
-                : "bg-white text-slate-500 border-slate-200 hover:border-blue-400"
+                ? "bg-slate-900 text-white shadow-xl" 
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
             )}
           >
             Factor {f.id}
@@ -35,141 +58,187 @@ export default function MatrixView({ evidences }: MatrixViewProps) {
         ))}
       </div>
 
-      <div className="space-y-12">
-        {FACTORS.filter(f => !activeFactor || f.id === activeFactor).map(factor => (
-          <section key={factor.id} className="scroll-mt-6 animate-in slide-in-from-left-4 duration-500">
-            <div className="flex items-center gap-4 mb-8 border-b border-slate-200 pb-4">
-              <div className="w-12 h-12 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold shadow-lg">
-                {factor.id}
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-slate-900 tracking-tight">{factor.name}</h3>
-                <p className="text-xs text-slate-500 uppercase font-bold tracking-widest mt-0.5">Factor de Acreditación</p>
-              </div>
-            </div>
+      <div className="space-y-16">
+        {FACTORS.filter(f => !activeFactor || f.id === activeFactor).map(factor => {
+          const factorChars = CHARACTERISTICS.filter(c => c.factorId === factor.id);
+          const factorEvidenceCount = evidences.filter(e => e.factorId === factor.id).length;
 
-            <div className="grid grid-cols-1 gap-6">
-              {CHARACTERISTICS.filter(c => c.factorId === factor.id).map(char => {
-                const charEvidences = evidences.filter(e => e.characteristicId === char.id);
-                const isActive = expandedChar === char.id;
-
-                return (
-                  <div 
-                    key={char.id} 
-                    className={cn(
-                      "bg-white rounded-xl border transition-all duration-300",
-                      isActive ? "border-blue-500 shadow-xl ring-1 ring-blue-50" : "border-slate-200 shadow-sm hover:border-slate-300"
-                    )}
-                  >
-                    {/* Char Header */}
-                    <button 
-                      onClick={() => setExpandedChar(isActive ? null : char.id)}
-                      className="w-full text-left p-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
-                    >
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-blue-600 px-2 py-1 bg-blue-50 rounded uppercase tracking-widest">Característica {char.id}</span>
-                          {charEvidences.length > 0 && (
-                            <span className="text-[10px] font-bold text-green-600 px-2 py-1 bg-green-50 rounded uppercase tracking-widest">
-                              {charEvidences.length} {charEvidences.length === 1 ? 'Evidencia' : 'Evidencias'}
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="font-bold text-slate-900 text-lg leading-tight">{char.name}</h4>
-                        <p className="text-xs text-slate-500 leading-relaxed max-w-3xl">
-                          {char.description}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center transition-colors",
-                          isActive ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
-                        )}>
-                          {isActive ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Char Evidences (Expanded) */}
-                    {isActive && (
-                      <div className="border-t border-slate-100 bg-slate-50/50 p-6 space-y-6 animate-in fade-in zoom-in-95 duration-300">
-                        {/* Examples Section */}
-                        <div className="bg-white p-4 rounded-lg border border-slate-100 shadow-sm">
-                           <div className="flex items-center gap-2 mb-3">
-                             <HelpCircle size={14} className="text-blue-500" />
-                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ejemplos sugeridos por el CNA:</span>
-                           </div>
-                           <div className="flex flex-wrap gap-1.5">
-                             {char.examples.map((ex, i) => (
-                               <span key={i} className="px-2 py-1 bg-slate-50 text-slate-600 rounded text-[9px] font-medium border border-slate-100 uppercase tracking-tighter">
-                                 {ex}
-                               </span>
-                             ))}
-                           </div>
-                        </div>
-
-                        {/* Registered Evidences List */}
-                        <div className="space-y-4">
-                          <h5 className="text-[11px] font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                             <Database size={14} className="text-blue-600" />
-                             Evidencias Registradas en el Programa
-                          </h5>
-
-                          {charEvidences.length === 0 ? (
-                            <div className="bg-white py-12 text-center rounded-xl border border-slate-200 border-dashed">
-                              <FileText size={32} className="mx-auto text-slate-300 mb-2" />
-                              <p className="text-sm text-slate-500">No hay evidencias registradas para esta característica aún.</p>
-                              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mt-1">Se requiere gestión documental</p>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                              {charEvidences.map(evidence => (
-                                <EvidenceCompactCard key={evidence.id} evidence={evidence} />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+          return (
+            <section key={factor.id} className="scroll-mt-10 animate-in slide-in-from-bottom-4 duration-700">
+              <div className="flex flex-col md:flex-row md:items-center gap-6 mb-10 border-b border-slate-200 pb-8">
+                <div className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex flex-col items-center justify-center shadow-2xl shadow-blue-600/30">
+                  <span className="text-xs font-bold opacity-70 leading-none mb-1 uppercase">F</span>
+                  <span className="text-2xl font-black leading-none">{factor.id}</span>
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight">{factor.name}</h3>
+                    {factorEvidenceCount > 0 && (
+                      <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                        {factorEvidenceCount} {factorEvidenceCount === 1 ? 'EVIDENCIA' : 'EVIDENCIAS'}
+                      </span>
                     )}
                   </div>
-                );
-              })}
-            </div>
-          </section>
-        ))}
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Compendio de información normativa y documental</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                {factorChars.map(char => {
+                  const charEvidences = evidences.filter(e => e.characteristicId === char.id);
+                  const isActive = expandedChar === char.id;
+
+                  return (
+                    <div 
+                      key={char.id} 
+                      className={cn(
+                        "bg-white rounded-2xl border transition-all duration-500",
+                        isActive 
+                          ? "border-blue-400 shadow-2xl ring-4 ring-blue-50 z-10" 
+                          : "border-slate-100 hover:border-slate-300 shadow-sm"
+                      )}
+                    >
+                      {/* Char Header */}
+                      <button 
+                        onClick={() => setExpandedChar(isActive ? null : char.id)}
+                        className="w-full text-left p-8 flex flex-col md:flex-row md:items-start justify-between gap-6 group"
+                      >
+                        <div className="flex-1 space-y-3">
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black bg-slate-900 text-white px-2.5 py-1.5 rounded-lg uppercase tracking-widest flex items-center gap-1.5">
+                              <Layers size={10} /> Característica {char.id}
+                            </span>
+                            {charEvidences.length > 0 ? (
+                              <span className="text-[10px] font-black text-blue-600 px-2.5 py-1.5 bg-blue-50 rounded-lg border border-blue-100 uppercase tracking-widest">
+                                {charEvidences.length} {charEvidences.length === 1 ? 'Evidencia' : 'Evidencias'}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-400 px-2.5 py-1.5 bg-slate-50 rounded-lg border border-slate-100 uppercase tracking-widest">
+                                Sin registros
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="font-extrabold text-slate-900 text-xl leading-snug group-hover:text-blue-600 transition-colors">{char.name}</h4>
+                          <p className="text-xs text-slate-500 leading-relaxed max-w-4xl line-clamp-2 italic">
+                            {char.description}
+                          </p>
+                        </div>
+                        <div className="flex items-center self-end md:self-center">
+                          <div className={cn(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300",
+                            isActive ? "bg-blue-600 text-white shadow-xl shadow-blue-600/30" : "bg-slate-100 text-slate-400 group-hover:bg-slate-200"
+                          )}>
+                            {isActive ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Char Evidences (Expanded) */}
+                      {isActive && (
+                        <div className="border-t border-slate-100 bg-slate-50/30 p-8 space-y-8 animate-in slide-in-from-top-4 duration-500">
+                          {/* Normative Details */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="md:col-span-2 space-y-3">
+                               <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                  <Info size={14} className="text-blue-500" /> Descripción detallada de la característica
+                               </h5>
+                               <p className="text-sm text-slate-700 leading-relaxed font-medium bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+                                  {char.description}
+                               </p>
+                            </div>
+                            <div className="space-y-3">
+                               <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                  <HelpCircle size={14} className="text-amber-500" /> Ejemplos sugeridos
+                               </h5>
+                               <div className="flex flex-wrap gap-2">
+                                 {char.examples.map((ex, i) => (
+                                   <span key={i} className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-bold border border-amber-100 uppercase tracking-tight">
+                                     {ex}
+                                   </span>
+                                 ))}
+                               </div>
+                            </div>
+                          </div>
+
+                          {/* Registered Evidences List */}
+                          <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                              <h5 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                                 <Database size={18} className="text-blue-600" />
+                                 Acervo Documental Registrado
+                              </h5>
+                              {charEvidences.length > 0 && (
+                                <span className="text-[10px] font-bold text-slate-400">Mostrando {charEvidences.length} de {charEvidences.length}</span>
+                              )}
+                            </div>
+
+                            {charEvidences.length === 0 ? (
+                              <div className="bg-white py-16 text-center rounded-3xl border-2 border-dashed border-slate-200">
+                                <FolderOpen size={48} className="mx-auto text-slate-200 mb-4" />
+                                <h6 className="text-base font-bold text-slate-800">Sin evidencias aún</h6>
+                                <p className="text-xs text-slate-500 mt-2 max-w-xs mx-auto">Esta característica requiere que se registren documentos para demostrar cumplimiento.</p>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                                {charEvidences.map(evidence => (
+                                  <EvidenceCompactCard key={evidence.id} evidence={evidence} />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function EvidenceCompactCard({ evidence }: { evidence: Evidence, key?: string }) {
+function EvidenceCompactCard({ evidence }: { evidence: Evidence }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between group transition-all duration-200">
-      <div className="space-y-3">
+    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all flex flex-col justify-between group animate-in fade-in duration-500">
+      <div className="space-y-4">
         <div className="flex justify-between items-start">
-          <StatusBadge status={evidence.status} />
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{formatDate(evidence.date)}</span>
+          <div className="flex flex-col gap-2">
+            <StatusBadge status={evidence.status} />
+            <div className="flex flex-wrap gap-1">
+               {evidence.programs.map(p => (
+                 <span key={p} className="text-[8px] font-black py-0.5 px-1.5 bg-slate-100 text-slate-500 rounded border border-slate-200 uppercase tracking-tight">
+                   {p}
+                 </span>
+               ))}
+            </div>
+          </div>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-lg">
+            AÑO {evidence.year}
+          </span>
         </div>
         
         <div>
-          <h6 className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors uppercase tracking-tight leading-tight">
+          <h6 className="font-extrabold text-slate-900 text-base group-hover:text-blue-700 transition-colors uppercase tracking-tight leading-tight">
             {evidence.name}
           </h6>
           
-          <div className="mt-2 text-xs text-slate-500 leading-relaxed">
+          <div className="mt-3 text-xs text-slate-600 leading-relaxed">
             <p className={cn(
-              "transition-all duration-300",
+              "transition-all duration-500",
               !isExpanded && "line-clamp-2"
             )}>
-              {evidence.description}
+              {evidence.description || "Sin descripción."}
             </p>
             
             {isExpanded && evidence.observations && (
-              <div className="mt-3 pt-3 border-t border-slate-100">
-                <span className="text-[9px] font-bold uppercase text-slate-400 tracking-wider block mb-1">Observaciones</span>
-                <p className="italic text-slate-600">
+              <div className="mt-4 pt-4 border-t border-slate-100 animate-in fade-in slide-in-from-top-2">
+                <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest block mb-2">Anotaciones adicionales</span>
+                <p className="italic text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 leading-relaxed">
                   {evidence.observations}
                 </p>
               </div>
@@ -177,41 +246,41 @@ function EvidenceCompactCard({ evidence }: { evidence: Evidence, key?: string })
 
             <button 
               onClick={() => setIsExpanded(!isExpanded)}
-              className="mt-2 text-[9px] font-bold text-blue-600 hover:text-blue-800 uppercase tracking-widest flex items-center gap-1"
+              className="mt-3 text-[10px] font-extrabold text-blue-600 hover:text-blue-800 uppercase tracking-widest flex items-center gap-1.5 transition-colors"
             >
               {isExpanded ? (
-                <>Contraer <ChevronUp size={10} /></>
+                <>LEER MENOS <ChevronUp size={14} /></>
               ) : (
-                <>Mostrar completo <ChevronDown size={10} /></>
+                <>LEER MÁS <ChevronDown size={14} /></>
               )}
             </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-4 pt-1">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-             <User size={12} className="text-slate-300" />
-             {evidence.responsible || "Sin asignar"}
+        <div className="flex flex-wrap gap-4 pt-2 border-t border-slate-50">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+             <User size={14} className="text-slate-300" />
+             {evidence.responsible || "General"}
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-             <Tag size={12} className="text-slate-300" />
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">
+             <Tag size={14} className="text-slate-300" />
              {evidence.type}
           </div>
         </div>
       </div>
 
-      <div className="mt-4 pt-4 border-t border-slate-50 flex justify-end">
+      <div className="mt-6 pt-5 border-t border-slate-50 flex justify-end">
         {evidence.supportLink ? (
           <a 
             href={evidence.supportLink} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-[10px] font-bold text-blue-600 flex items-center gap-1 uppercase tracking-widest hover:text-blue-800 transition-colors"
+            className="text-[10px] font-black text-white bg-slate-900 px-4 py-2.5 rounded-xl flex items-center gap-2 uppercase tracking-widest hover:bg-blue-600 hover:shadow-xl hover:shadow-blue-600/20 transition-all active:scale-95"
           >
-            Soporte <ExternalLink size={12} />
+            ABRIR SOPORTE <ExternalLink size={14} />
           </a>
         ) : (
-          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Sin Soporte</span>
+          <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest border border-slate-100 px-4 py-2.5 rounded-xl">Sin Soporte</span>
         )}
       </div>
     </div>
@@ -220,14 +289,14 @@ function EvidenceCompactCard({ evidence }: { evidence: Evidence, key?: string })
 
 function StatusBadge({ status }: { status: EvidenceStatus }) {
   const styles = {
-    'Completo': "bg-green-100 text-green-700 border-green-200",
-    'Parcial': "bg-amber-100 text-amber-700 border-amber-200",
-    'Pendiente': "bg-rose-100 text-rose-700 border-rose-200"
+    'Completo': "bg-emerald-50 text-emerald-700 border-emerald-100",
+    'Parcial': "bg-amber-50 text-amber-700 border-amber-100",
+    'Pendiente': "bg-rose-50 text-rose-700 border-rose-100"
   };
 
   return (
     <span className={cn(
-      "px-2 py-0.5 rounded-full text-[8px] font-bold border uppercase tracking-tight",
+      "px-3 py-1.5 rounded-xl text-[9px] font-black border uppercase tracking-widest shadow-sm",
       styles[status]
     )}>
       {status}

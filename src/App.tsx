@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Evidence } from './types';
+import { Evidence, AcademicProgramId, YearFilter } from './types';
 import Dashboard from './components/Dashboard';
 import EvidenceForm from './components/EvidenceForm';
 import EvidenceList from './components/EvidenceList';
@@ -9,10 +9,12 @@ import { cn } from './utils';
 import { db, handleFirestoreError } from './lib/firebase';
 import { collection, onSnapshot, query, setDoc, doc, deleteDoc, orderBy } from 'firebase/firestore';
 import { 
-  Plus, LayoutDashboard, Database, Table, Menu, Search, LogOut, Loader2
+  Plus, LayoutDashboard, Database, Table, Menu, Search, Loader2, Music, GraduationCap, Users, History, Filter, ChevronRight, Home, CalendarDays
 } from 'lucide-react';
+import { PROGRAMS } from './constants';
 
 import Logo from './components/Logo';
+import YearSelectorComponent from './components/YearSelector';
 
 import { SettingsProvider } from './lib/SettingsContext';
 
@@ -25,15 +27,17 @@ export default function App() {
 }
 
 function MainApp() {
-  const [view, setView] = useState<'dashboard' | 'registrar' | 'evidencias' | 'matriz'>('dashboard');
+  const [selectedProgram, setSelectedProgram] = useState<AcademicProgramId | null>(null);
+  const [view, setView] = useState<'dashboard' | 'registrar' | 'historial' | 'vista-general' | 'seguimiento'>('dashboard');
   const [evidences, setEvidences] = useState<Evidence[]>([]);
   const [editingEvidence, setEditingEvidence] = useState<Evidence | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [filterYear, setFilterYear] = useState<YearFilter>({ type: 'all' });
 
   // Firestore Sync for Evidences
   useEffect(() => {
-    const q = query(collection(db, 'evidences'), orderBy('date', 'desc'));
+    const q = query(collection(db, 'evidences'), orderBy('year', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const eList = snapshot.docs.map(doc => ({
         ...doc.data()
@@ -52,7 +56,7 @@ function MainApp() {
     try {
       await setDoc(doc(db, 'evidences', data.id), data);
       setEditingEvidence(undefined);
-      setView('evidencias');
+      setView('historial');
     } catch (e) {
       handleFirestoreError(e, editingEvidence ? 'update' : 'create', `evidences/${data.id}`);
     }
@@ -72,7 +76,93 @@ function MainApp() {
     }
   };
 
-  const isAdmin = true; // Everyone is admin now for simplicity since auth is removed
+  const years = Array.from(new Set(evidences.map(e => e.year))).sort((a, b) => b - a);
+
+  // Filtered evidences based on selected program and year
+  const filteredEvidences = React.useMemo(() => {
+    let base = selectedProgram === 'consolidated'
+      ? evidences
+      : selectedProgram 
+        ? evidences.filter(e => e.programs.includes(selectedProgram))
+        : [];
+
+    return base.filter(e => {
+      if (filterYear.type === 'all') return true;
+      if (filterYear.type === 'single' && filterYear.year) {
+        return e.year === filterYear.year;
+      }
+      if (filterYear.type === 'range' && filterYear.startYear && filterYear.endYear) {
+        return e.year >= filterYear.startYear && e.year <= filterYear.endYear;
+      }
+      return true;
+    });
+  }, [evidences, selectedProgram, filterYear]);
+
+  const YearSelector = () => (
+    <YearSelectorComponent 
+      years={years} 
+      filterYear={filterYear} 
+      onYearChange={setFilterYear} 
+    />
+  );
+
+  if (!selectedProgram) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-100 via-slate-50 to-slate-50">
+        <div className="max-w-6xl w-full">
+          <div className="text-center mb-12 animate-in fade-in slide-in-from-top-4 duration-500">
+            <Logo variant="light" className="justify-center mb-6" />
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">Sistema de Gestión de Evidencias</h1>
+            <p className="mt-4 text-lg text-slate-600 font-medium">Seleccione un programa académico o consulte la vista global consolidada</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+            {PROGRAMS.map((prog, idx) => (
+              <button
+                key={prog.id}
+                onClick={() => setSelectedProgram(prog.id)}
+                className="group relative bg-white p-6 rounded-2xl shadow-xl border border-slate-200 hover:border-blue-500 hover:shadow-blue-200/50 transition-all text-left flex flex-col items-start gap-4 hover:-translate-y-1 active:scale-[0.98]"
+              >
+                <div className="p-3 rounded-xl bg-slate-900 text-white group-hover:bg-blue-600 transition-colors">
+                  {idx === 0 && <Music size={24} />}
+                  {idx === 1 && <GraduationCap size={24} />}
+                  {idx === 2 && <Users size={24} />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight group-hover:text-blue-700 transition-colors leading-tight">{prog.name}</h3>
+                  <p className="text-slate-500 text-xs mt-2 font-medium leading-relaxed">Gestión individual del programa y repositorio.</p>
+                </div>
+                <div className="mt-auto w-full flex justify-end pt-4">
+                  <span className="p-1.5 bg-slate-50 rounded-full text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 transition-all">
+                    <ChevronRight size={16} />
+                  </span>
+                </div>
+              </button>
+            ))}
+
+            {/* Vista Consolidada Card */}
+            <button
+              onClick={() => setSelectedProgram('consolidated')}
+              className="group relative bg-slate-900 p-6 rounded-2xl shadow-2xl border border-slate-800 hover:border-blue-500 hover:shadow-blue-500/20 transition-all text-left flex flex-col items-start gap-4 hover:-translate-y-1 active:scale-[0.98]"
+            >
+              <div className="p-3 rounded-xl bg-blue-600 text-white group-hover:bg-blue-500 transition-colors">
+                <Database size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors leading-tight uppercase">Vista Consolidada General</h3>
+                <p className="text-slate-400 text-xs mt-2 font-medium leading-relaxed">Consulta global de los tres programas para informes y presentaciones.</p>
+              </div>
+              <div className="mt-auto w-full flex justify-end pt-4">
+                <span className="p-1.5 bg-slate-800 rounded-full text-slate-500 group-hover:text-white group-hover:bg-slate-700 transition-all">
+                  <ChevronRight size={16} />
+                </span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-900 overflow-x-hidden selection:bg-blue-100 selection:text-blue-900">
@@ -81,30 +171,56 @@ function MainApp() {
         "fixed inset-y-0 left-0 bg-slate-900 text-white border-r border-slate-800 transition-all duration-300 z-50 flex flex-col",
         sidebarOpen ? "w-64 md:w-72" : "w-0 md:w-20"
       )}>
-        <div className="p-5 border-b border-slate-800 shrink-0">
+        <div className="p-5 border-b border-slate-800 shrink-0 flex items-center justify-between">
           <Logo variant="dark" showText={sidebarOpen} className={cn("transition-all duration-300", !sidebarOpen && "justify-center")} />
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1">
-          {sidebarOpen && <div className="text-[10px] uppercase font-bold text-slate-500 mb-2 px-2">Gestión de Calidad</div>}
-          <NavItem active={view === 'dashboard'} onClick={() => setView('dashboard')} icon={<LayoutDashboard size={18} />} label="Dashboard" collapsed={!sidebarOpen} />
-          <NavItem active={view === 'evidencias'} onClick={() => setView('evidencias')} icon={<Database size={18} />} label="Registro Histórico" collapsed={!sidebarOpen} />
-          <NavItem active={view === 'registrar'} onClick={() => { setEditingEvidence(undefined); setView('registrar'); }} icon={<Plus size={18} />} label="Nuevo Registro" collapsed={!sidebarOpen} />
-          <NavItem active={view === 'matriz'} onClick={() => setView('matriz')} icon={<Table size={18} />} label="CNA Matrix" collapsed={!sidebarOpen} />
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+          {sidebarOpen && (
+            <div className="px-2 mb-4 pb-4 border-b border-slate-800">
+              <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2">
+                {selectedProgram === 'consolidated' ? 'Modo de consulta' : 'Programa seleccionado'}
+              </p>
+              <p className="text-sm font-bold text-blue-400 leading-tight">
+                {selectedProgram === 'consolidated' ? 'VISTA CONSOLIDADA GENERAL' : selectedProgram}
+              </p>
+              <button 
+                onClick={() => setSelectedProgram(null)}
+                className="mt-3 flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-white transition-colors"
+                title="Cambiar programa"
+              >
+                <Home size={12} /> CAMBIAR SELECCIÓN
+              </button>
+            </div>
+          )}
+          
+          {sidebarOpen && <div className="text-[10px] uppercase font-bold text-slate-500 mb-2 px-2 mt-4 tracking-widest">Navegación principal</div>}
+          <NavItem active={view === 'dashboard' || view === 'seguimiento'} onClick={() => setView('dashboard')} icon={<LayoutDashboard size={18} />} label="Seguimiento General" collapsed={!sidebarOpen} />
+          {selectedProgram !== 'consolidated' && (
+            <NavItem active={view === 'registrar'} onClick={() => { setEditingEvidence(undefined); setView('registrar'); }} icon={<Plus size={18} />} label="Registro de Evidencias" collapsed={!sidebarOpen} />
+          )}
+          <NavItem active={view === 'historial'} onClick={() => setView('historial')} icon={<History size={18} />} label="Historial" collapsed={!sidebarOpen} />
+          <NavItem active={view === 'vista-general'} onClick={() => setView('vista-general')} icon={<Table size={18} />} label="Vista General" collapsed={!sidebarOpen} />
         </nav>
       </aside>
 
       {/* Main Content */}
       <main className={cn("flex-1 flex flex-col transition-all duration-300", sidebarOpen ? "md:ml-72" : "md:ml-20")}>
-        <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-40 backdrop-blur-sm bg-white/90">
+        <header className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-40 backdrop-blur-sm bg-white/90">
           <div className="flex items-center gap-6">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
               <Menu size={20} />
             </button>
-            <div className="hidden lg:flex items-center gap-3 bg-slate-100 px-4 py-2 rounded-full w-96 border border-slate-200/50">
-              <Search className="text-slate-400" size={16} />
-              <input type="text" placeholder="Buscar evidencias..." className="bg-transparent border-none text-sm focus:ring-0 w-full placeholder:text-slate-400" />
-            </div>
+            <YearSelector />
+          </div>
+          
+          <div className="text-right">
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+               {selectedProgram === 'consolidated' ? 'Vista Activa' : 'Programa seleccionado'}
+             </p>
+             <p className="text-base font-black text-slate-900 leading-tight">
+               {selectedProgram === 'consolidated' ? 'Consolidado General' : selectedProgram}
+             </p>
           </div>
         </header>
 
@@ -112,33 +228,56 @@ function MainApp() {
           {loading && (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cargando Sistema...</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cargando datos del programa...</p>
             </div>
           )}
 
           {!loading && (
             <>
-              {view === 'dashboard' && <Dashboard evidences={evidences} />}
-              {view === 'evidencias' && (
-                <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-                   <div className="flex justify-between items-center mb-8 border-b border-slate-200 pb-6">
-                      <div>
-                        <h2 className="text-2xl font-bold tracking-tight text-slate-900">Registro Histórico</h2>
-                        <p className="text-sm text-slate-500 mt-1">Gestión integral de evidencias almacenadas de forma segura.</p>
-                      </div>
-                      <button onClick={() => setView('registrar')} className="bg-slate-900 text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg shadow-slate-900/10">
-                        <Plus size={18} /> Nueva Evidencia
-                      </button>
-                   </div>
-                   <EvidenceList evidences={evidences} onEdit={handleEdit} onDelete={handleDelete} />
-                </div>
+              {view === 'dashboard' && (
+                <Dashboard 
+                  evidences={filteredEvidences} 
+                  filterYear={filterYear} 
+                  availableYears={years} 
+                  onYearChange={setFilterYear} 
+                  isConsolidated={selectedProgram === 'consolidated'}
+                />
+              )}
+              {view === 'historial' && (
+                <EvidenceList 
+                  evidences={filteredEvidences} 
+                  onEdit={handleEdit} 
+                  onDelete={handleDelete} 
+                  onAdd={() => setView('registrar')}
+                  showProgramCol={true}
+                  filterYear={filterYear}
+                  availableYears={years}
+                  onYearChange={setFilterYear}
+                />
               )}
               {view === 'registrar' && (
                 <div className="max-w-4xl mx-auto">
-                   <EvidenceForm onSave={handleSaveEvidence} onCancel={() => setView('evidencias')} initialData={editingEvidence} />
+                   <EvidenceForm onSave={handleSaveEvidence} onCancel={() => setView('historial')} initialData={editingEvidence} currentProgram={selectedProgram} />
                 </div>
               )}
-              {view === 'matriz' && <MatrixView evidences={evidences} />}
+              {view === 'vista-general' && (
+                <MatrixView 
+                  evidences={filteredEvidences} 
+                  filterYear={filterYear} 
+                  availableYears={years} 
+                  onYearChange={setFilterYear} 
+                  isConsolidated={selectedProgram === 'consolidated'}
+                />
+              )}
+              {view === 'seguimiento' && (
+                <Dashboard 
+                  evidences={filteredEvidences} 
+                  filterYear={filterYear} 
+                  availableYears={years} 
+                  onYearChange={setFilterYear} 
+                  isConsolidated={selectedProgram === 'consolidated'}
+                />
+              )} 
             </>
           )}
         </div>
@@ -150,7 +289,7 @@ function MainApp() {
 function NavItem({ active, onClick, icon, label, collapsed }: any) {
   return (
     <button onClick={onClick} className={cn(
-      "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all font-medium text-sm",
+      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all font-medium text-sm mb-1",
       active 
         ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20" 
         : "text-slate-400 hover:bg-slate-800 hover:text-slate-200"
@@ -162,3 +301,4 @@ function NavItem({ active, onClick, icon, label, collapsed }: any) {
     </button>
   );
 }
+

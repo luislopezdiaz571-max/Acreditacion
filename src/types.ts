@@ -17,8 +17,10 @@ export type EvidenceStatus = "Completo" | "Parcial" | "Pendiente";
 
 export interface Evidence {
   id: string;
-  date: string;
+  year: number;
+  date?: string;
   name: string;
+  programs: string[]; // Selection of academic programs
   factorId: number;
   characteristicId: string;
   description: string;
@@ -30,6 +32,20 @@ export interface Evidence {
   source?: string;
   tags: string[];
   createdAt: string;
+}
+
+export type AcademicProgramId = "Música Instrumental" | "Dirección de Banda" | "Licenciatura en Música" | "consolidated";
+
+export interface YearFilter {
+  type: 'single' | 'range' | 'all';
+  year?: number;
+  startYear?: number;
+  endYear?: number;
+}
+
+export interface AcademicProgram {
+  id: AcademicProgramId;
+  name: string;
 }
 
 export interface DashboardStats {
