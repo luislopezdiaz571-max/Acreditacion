@@ -9,8 +9,8 @@ export const PROGRAMS: AcademicProgram[] = [
 
 export const FACTORS: Factor[] = [
   { id: 1, name: "Proyecto educativo del programa", characteristics: ["C1", "C2"] },
-  { id: 2, name: "Comunidad de estudiantes", characteristics: ["C3", "C4", "C5", "C6"] },
-  { id: 3, name: "Comunidad de profesores", characteristics: ["C7", "C8", "C9", "C10", "C11", "C12", "C13", "C14"] },
+  { id: 2, name: "Comunidad de estudiantes", characteristics: ["C3", "C4", "C5", "C6", "C7"] },
+  { id: 3, name: "Comunidad de profesores", characteristics: ["C8", "C9", "C10", "C11", "C12", "C13", "C14"] },
   { id: 4, name: "Comunidad de egresados", characteristics: ["C15", "C16"] },
   { id: 5, name: "Aspectos académicos y de formación", characteristics: ["C17", "C18", "C19", "C20", "C21"] },
   { id: 6, name: "Permanencia y graduación", characteristics: ["C22", "C23", "C24", "C25"] },
@@ -29,7 +29,7 @@ export const CHARACTERISTICS: Characteristic[] = [
   { id: "C4", factorId: 2, name: "Orientación, acompañamiento y seguimiento", description: "Estrategias de tutoría y apoyo al estudiante durante su trayectoria.", examples: ["Programas de tutorías", "Bienestar universitario"] },
   { id: "C5", factorId: 2, name: "Estrategias pedagógicas (autonomía y trabajo)", description: "Métodos que fomentan el aprendizaje autónomo y el trabajo colaborativo.", examples: ["Guías de cátedra", "Metodologías de clase"] },
   { id: "C6", factorId: 2, name: "Políticas académicas y normativas (inclusión y diversidad)", description: "Normas que garantizan el acceso y permanencia sin discriminación.", examples: ["Protocolos de inclusión", "Reglamento estudiantil"] },
-  { id: "C7", factorId: 3, name: "Estímulos y apoyos a profesores", description: "Reconocimientos y mecanismos de apoyo para el desarrollo docente.", examples: ["Escalafón docente", "Apoyos a congresos"] },
+  { id: "C7", factorId: 2, name: "Estímulos y apoyos a estudiantes", description: "Apoyos financieros, becas y reconocimientos para el bienestar estudiantil.", examples: ["Becas", "Auxilios", "Monitorías"] },
   { id: "C8", factorId: 3, name: "Resultados de selección, vinculación y permanencia", description: "Transparencia y efectividad en la contratación y estabilidad del personal.", examples: ["Convocatorias", "Contratos", "Evaluaciones"] },
   { id: "C9", factorId: 3, name: "Estatuto, trayectoria y reconocimiento", description: "Evolución y méritos de la planta profesoral.", examples: ["Hoja de vida docente", "Premios", "Certificados"] },
   { id: "C10", factorId: 3, name: "Planta profesoral (desarrollo del proyecto educativo)", description: "Suficiencia e idoneidad de los docentes para cumplir el PEP.", examples: ["Carga académica", "Perfiles docentes"] },

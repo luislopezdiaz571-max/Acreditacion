@@ -49,40 +49,25 @@ export default function EvidenceList({
 
   return (
     <div className="space-y-6">
-      {/* Header Contextual */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-            <History size={24} />
+      {/* Controls */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre, descripción o etiquetas..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
+            />
           </div>
-          <div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">Historial Documental</h1>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Registros de evidencias del programa</p>
-          </div>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-4">
-          <YearSelector years={availableYears} filterYear={filterYear} onYearChange={onYearChange} />
           <button 
             onClick={onAdd}
-            className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95"
+            className="flex items-center justify-center gap-2 bg-slate-900 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95 shrink-0"
           >
             <Plus size={16} /> NUEVA EVIDENCIA
           </button>
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="relative w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre, descripción o etiquetas..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm font-medium"
-          />
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -215,7 +200,7 @@ function EvidenceCard({ evidence, onEdit, onDelete }: {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-[10px] uppercase font-bold tracking-widest text-slate-400 pt-4 border-t border-slate-50">
+        <div className="grid grid-cols-1 gap-4 text-[10px] uppercase font-bold tracking-widest text-slate-400 pt-4 border-t border-slate-50">
           <div className="flex items-center gap-2">
             <Calendar size={14} className="text-slate-300" />
             {evidence.date ? formatDate(evidence.date) : evidence.year}

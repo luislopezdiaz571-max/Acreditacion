@@ -88,7 +88,16 @@ function MainApp() {
     }
   };
 
-  const years = Array.from(new Set(evidences.map(e => e.year))).sort((a, b) => b - a);
+  const years = React.useMemo(() => {
+    const dataYears = evidences.map(e => e.year);
+    const currentYear = new Date().getFullYear();
+    // Rango dinámico: desde 2010 hasta 10 años adelante del actual
+    const startYear = 2010;
+    const endYear = currentYear + 10;
+    const baseRange = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
+    
+    return Array.from(new Set([...baseRange, ...dataYears])).sort((a, b) => b - a);
+  }, [evidences]);
 
   // Filtered evidences based on selected program and year
   const filteredEvidences = React.useMemo(() => {
@@ -223,7 +232,7 @@ function MainApp() {
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
               <Menu size={20} />
             </button>
-            <YearSelector />
+            {view !== 'registrar' && <YearSelector />}
           </div>
           
           <div className="text-right">

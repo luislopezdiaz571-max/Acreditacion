@@ -109,24 +109,6 @@ export default function Dashboard({ evidences, filterYear, availableYears, onYea
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-      {/* Header Contextual */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-             {isConsolidated ? <Database size={24} /> : <LayoutDashboard size={24} />}
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">
-              {isConsolidated ? 'Seguimiento Consolidado General' : 'Seguimiento de Avance'}
-            </h1>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-              {isConsolidated ? 'Análisis global de los tres programas' : 'Análisis del proceso de reacreditación'}
-            </p>
-          </div>
-        </div>
-        <YearSelector years={availableYears} filterYear={filterYear} onYearChange={onYearChange} />
-      </div>
-
       {/* Drive Link & Banner */}
       <div className="bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl border border-slate-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>

@@ -29,10 +29,9 @@ export interface Evidence {
   classifications: EvidenceClassification[]; // Supports multiple factor/characteristic associations
   description: string;
   type: string;
-  supportLink: string;
+  supportLink?: string; // Optional link
   status: EvidenceStatus;
   observations: string;
-  responsible?: string;
   source?: string;
   tags: string[];
   createdAt: string;

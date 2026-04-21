@@ -22,24 +22,6 @@ export default function MatrixView({ evidences, filterYear, availableYears, onYe
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
-      {/* Header Contextual */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
-             {isConsolidated ? <Database size={24} /> : <Table size={24} />}
-          </div>
-          <div>
-            <h1 className="text-xl font-black text-slate-900 tracking-tight uppercase">
-              {isConsolidated ? 'Vista Consolidada General (Matriz)' : 'Vista General (Matriz)'}
-            </h1>
-            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-              {isConsolidated ? 'Estructura global por factores y características' : 'Estructura por factores y características'}
-            </p>
-          </div>
-        </div>
-        <YearSelector years={availableYears} filterYear={filterYear} onYearChange={onYearChange} />
-      </div>
-
       {/* Factor Quick Navigation */}
       <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm inline-flex flex-wrap gap-1">
         {FACTORS.map(f => (
@@ -265,10 +247,6 @@ function EvidenceCompactCard({ evidence }: { evidence: Evidence }) {
         </div>
 
         <div className="flex flex-wrap gap-4 pt-2 border-t border-slate-50">
-          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-             <User size={14} className="text-slate-300" />
-             {evidence.responsible || "General"}
-          </div>
           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate">
              <Tag size={14} className="text-slate-300" />
              {evidence.type}

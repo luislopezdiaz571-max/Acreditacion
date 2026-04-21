@@ -34,13 +34,11 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
     supportLink: initialData?.supportLink || '',
     status: initialData?.status || 'Pendiente',
     observations: initialData?.observations || '',
-    responsible: initialData?.responsible || '',
     source: initialData?.source || '',
     tags: initialData?.tags || [],
   });
 
   const [classifications, setClassifications] = useState<EvidenceClassification[]>(initialClassifications);
-  const [tagInput, setTagInput] = useState('');
   const [suggesting, setSuggesting] = useState(false);
 
   // Synchronize characteristic when factor changes in any classification
@@ -75,8 +73,21 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
       return;
     }
 
+    // Generación automática de palabras clave (Tags)
+    const textToProcess = `${formData.name} ${formData.description}`.toLowerCase();
+    const commonWords = new Set(['de', 'el', 'la', 'en', 'un', 'una', 'y', 'o', 'a', 'del', 'los', 'las', 'por', 'con', 'para', 'su', 'sus']);
+    
+    // Extraer palabras únicas de al menos 3 caracteres que no sean comunes
+    const autoTags = Array.from(new Set(
+      textToProcess
+        .replace(/[^\w\s]/g, '')
+        .split(/\s+/)
+        .filter(word => word.length > 3 && !commonWords.has(word))
+    )).slice(0, 10); // Limitar a 10 etiquetas
+
     onSave({
       ...formData as Evidence,
+      tags: autoTags,
       classifications,
       createdAt: initialData?.createdAt || new Date().toISOString(),
     });
@@ -89,17 +100,6 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
     } else {
       setFormData(prev => ({ ...prev, programs: [...currentProgs, progId] }));
     }
-  };
-
-  const addTag = () => {
-    if (tagInput && !formData.tags?.includes(tagInput)) {
-      setFormData(prev => ({ ...prev, tags: [...(prev.tags || []), tagInput] }));
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tag: string) => {
-    setFormData(prev => ({ ...prev, tags: (prev.tags || []).filter(t => t !== tag) }));
   };
 
   const handleSmartSuggest = () => {
@@ -230,17 +230,6 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
 
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Responsable</label>
-              <input 
-                type="text" 
-                value={formData.responsible}
-                onChange={e => setFormData({...formData, responsible: e.target.value})}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-medium"
-                placeholder="Nombre o dependencia"
-              />
-            </div>
-
-            <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Estado del Soporte</label>
               <select 
                 value={formData.status}
@@ -330,9 +319,9 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
           </div>
 
           <div className="md:col-span-2 space-y-6">
-             <div className="space-y-1">
+            <div className="space-y-1">
               <div className="flex justify-between items-end mb-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Link de Soporte (Drive / URL)*</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Link de Soporte (Drive / URL) - Opcional</label>
                 <a 
                   href={settings.generalDriveLink} 
                   target="_blank" 
@@ -347,9 +336,9 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
                 value={formData.supportLink}
                 onChange={e => setFormData({...formData, supportLink: e.target.value})}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold text-blue-700"
-                placeholder="https://drive.google.com/..."
-                required
+                placeholder="Ej: https://drive.google.com/... (Se puede añadir después)"
               />
+              <p className="text-[9px] text-slate-400 font-medium italic mt-1">El sistema generará etiquetas automáticas a partir del nombre y la descripción para facilitar la organización.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -369,33 +358,8 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
                   value={formData.observations}
                   onChange={e => setFormData({...formData, observations: e.target.value})}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none h-40 resize-none text-sm leading-relaxed italic"
-                  placeholder="Anotaciones extra para el proceso de acreditación..."
+                  placeholder="Anotaciones extra (puedes indicar si falta el soporte o link)..."
                 />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Palabras Clave</label>
-              <div className="flex gap-3">
-                <input 
-                  type="text" 
-                  value={tagInput}
-                  onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-medium"
-                  placeholder="Escribe una etiqueta y presiona Enter..."
-                />
-                <button type="button" onClick={addTag} className="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl text-xs font-bold uppercase hover:bg-slate-300 transition-colors">
-                  Añadir
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {formData.tags?.map(tag => (
-                  <span key={tag} className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-2 uppercase tracking-wide">
-                    {tag}
-                    <X size={12} className="cursor-pointer hover:text-red-500" onClick={() => removeTag(tag)} />
-                  </span>
-                ))}
               </div>
             </div>
           </div>
