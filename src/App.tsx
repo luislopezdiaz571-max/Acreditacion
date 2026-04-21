@@ -1,32 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
-import { Evidence, AuthorizedUser } from './types';
+import { Evidence } from './types';
 import Dashboard from './components/Dashboard';
 import EvidenceForm from './components/EvidenceForm';
 import EvidenceList from './components/EvidenceList';
 import MatrixView from './components/MatrixView';
-import AuthContainer from './components/AuthContainer';
-import UserManagement from './components/UserManagement';
 import { cn } from './utils';
-import { db, auth, handleFirestoreError } from './lib/firebase';
-import { collection, onSnapshot, query, setDoc, doc, deleteDoc, updateDoc, orderBy } from 'firebase/firestore';
+import { db, handleFirestoreError } from './lib/firebase';
+import { collection, onSnapshot, query, setDoc, doc, deleteDoc, orderBy } from 'firebase/firestore';
 import { 
-  Plus, LayoutDashboard, Database, Table, University, Bell, Menu, Search, LogOut, Users, Settings, ShieldCheck
+  Plus, LayoutDashboard, Database, Table, Menu, Search, LogOut, Loader2
 } from 'lucide-react';
-import { signOut } from 'firebase/auth';
 
 import Logo from './components/Logo';
 
+import { SettingsProvider } from './lib/SettingsContext';
+
 export default function App() {
   return (
-    <AuthContainer>
-      {(user, authUser) => <MainApp user={user} authUser={authUser} />}
-    </AuthContainer>
+    <SettingsProvider>
+      <MainApp />
+    </SettingsProvider>
   );
 }
 
-function MainApp({ user, authUser }: { user: any, authUser: AuthorizedUser }) {
-  const [view, setView] = useState<'dashboard' | 'registrar' | 'evidencias' | 'matriz' | 'usuarios'>('dashboard');
+function MainApp() {
+  const [view, setView] = useState<'dashboard' | 'registrar' | 'evidencias' | 'matriz'>('dashboard');
   const [evidences, setEvidences] = useState<Evidence[]>([]);
   const [editingEvidence, setEditingEvidence] = useState<Evidence | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -65,6 +64,7 @@ function MainApp({ user, authUser }: { user: any, authUser: AuthorizedUser }) {
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('¿Está seguro de que desea eliminar este registro?')) return;
     try {
       await deleteDoc(doc(db, 'evidences', id));
     } catch (e) {
@@ -72,9 +72,7 @@ function MainApp({ user, authUser }: { user: any, authUser: AuthorizedUser }) {
     }
   };
 
-  const handleLogout = () => signOut(auth);
-
-  const isAdmin = authUser.role === 'admin';
+  const isAdmin = true; // Everyone is admin now for simplicity since auth is removed
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-900 overflow-x-hidden selection:bg-blue-100 selection:text-blue-900">
@@ -93,27 +91,7 @@ function MainApp({ user, authUser }: { user: any, authUser: AuthorizedUser }) {
           <NavItem active={view === 'evidencias'} onClick={() => setView('evidencias')} icon={<Database size={18} />} label="Registro Histórico" collapsed={!sidebarOpen} />
           <NavItem active={view === 'registrar'} onClick={() => { setEditingEvidence(undefined); setView('registrar'); }} icon={<Plus size={18} />} label="Nuevo Registro" collapsed={!sidebarOpen} />
           <NavItem active={view === 'matriz'} onClick={() => setView('matriz')} icon={<Table size={18} />} label="CNA Matrix" collapsed={!sidebarOpen} />
-          
-          {isAdmin && (
-            <>
-              {sidebarOpen && <div className="text-[10px] uppercase font-bold text-slate-500 mb-2 mt-6 px-2">Administración</div>}
-              <NavItem active={view === 'usuarios'} onClick={() => setView('usuarios')} icon={<Users size={18} />} label="Gestión de Accesos" collapsed={!sidebarOpen} />
-            </>
-          )}
         </nav>
-
-        <div className="p-4 bg-slate-950/20 border-t border-slate-800/50">
-          <button 
-            onClick={handleLogout}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 hover:bg-rose-500/10 hover:text-rose-400 transition-all font-medium text-sm mt-auto",
-              !sidebarOpen && "justify-center"
-            )}
-          >
-            <LogOut size={18} />
-            {sidebarOpen && <span>Cerrar Sesión</span>}
-          </button>
-        </div>
       </aside>
 
       {/* Main Content */}
@@ -128,28 +106,13 @@ function MainApp({ user, authUser }: { user: any, authUser: AuthorizedUser }) {
               <input type="text" placeholder="Buscar evidencias..." className="bg-transparent border-none text-sm focus:ring-0 w-full placeholder:text-slate-400" />
             </div>
           </div>
-
-          <div className="flex items-center gap-5">
-            <div className="hidden sm:block text-right">
-              <div className="flex items-center gap-1.5 justify-end">
-                <p className="text-xs font-bold leading-none text-slate-900">{user.displayName || 'Usuario'}</p>
-                {isAdmin && <ShieldCheck className="text-blue-600" size={12} />}
-              </div>
-              <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-tight truncate max-w-[150px]">{user.email}</p>
-            </div>
-            <img 
-              src={user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`} 
-              alt="Avatar" 
-              className="w-10 h-10 rounded-full border-2 border-white shadow-sm ring-1 ring-slate-100"
-            />
-          </div>
         </header>
 
         <div className="p-8 max-w-[1400px] mx-auto w-full">
-          {loading && view !== 'usuarios' && (
+          {loading && (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sincronizando con la nube...</p>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cargando Sistema...</p>
             </div>
           )}
 
@@ -176,7 +139,6 @@ function MainApp({ user, authUser }: { user: any, authUser: AuthorizedUser }) {
                 </div>
               )}
               {view === 'matriz' && <MatrixView evidences={evidences} />}
-              {view === 'usuarios' && isAdmin && <UserManagement onBack={() => setView('dashboard')} />}
             </>
           )}
         </div>
@@ -198,24 +160,5 @@ function NavItem({ active, onClick, icon, label, collapsed }: any) {
       </span>
       {!collapsed && <span>{label}</span>}
     </button>
-  );
-}
-
-function Loader2(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-    </svg>
   );
 }

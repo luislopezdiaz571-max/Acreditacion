@@ -6,13 +6,28 @@ import {
 } from 'recharts';
 import { Evidence, EvidenceStatus } from '../types';
 import { FACTORS } from '../constants';
-import { AlertCircle, CheckCircle2, Clock, FileText, LayoutDashboard, TrendingUp, Filter } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, FileText, LayoutDashboard, TrendingUp, Filter, Settings, Link, Save, Globe } from 'lucide-react';
+import { useSettings } from '../lib/SettingsContext';
 
 interface DashboardProps {
   evidences: Evidence[];
 }
 
 export default function Dashboard({ evidences }: DashboardProps) {
+  const { settings, updateSettings } = useSettings();
+  const [isEditingSettings, setIsEditingSettings] = useState(false);
+  const [driveLinkInput, setDriveLinkInput] = useState(settings.generalDriveLink);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const isAdmin = true; // Everyone can edit settings now
+
+  const handleUpdateLink = async () => {
+    if (!driveLinkInput) return;
+    setIsSaving(true);
+    await updateSettings({ generalDriveLink: driveLinkInput }, 'sistema');
+    setIsSaving(false);
+    setIsEditingSettings(false);
+  };
   const [stats, setStats] = useState({
     total: 0,
     completo: 0,
@@ -50,6 +65,73 @@ export default function Dashboard({ evidences }: DashboardProps) {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Zona de Acceso Rápido y Configuración */}
+      <div className="bg-slate-900 rounded-2xl overflow-hidden shadow-xl border border-slate-800">
+        <div className="p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-900/40 text-white">
+              <Globe size={28} />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white tracking-tight">Repositorio General de Evidencias</h2>
+              <p className="text-slate-400 text-xs mt-1">Acceso directo a la estructura organizada en Google Drive.</p>
+            </div>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <a 
+              href={settings.generalDriveLink} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex-1 md:flex-none px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95"
+            >
+              Abrir Google Drive <Link size={14} />
+            </a>
+            
+            {isAdmin && (
+              <button 
+                onClick={() => setIsEditingSettings(!isEditingSettings)}
+                className={cn(
+                  "px-4 py-3 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all border flex items-center gap-2",
+                  isEditingSettings ? "bg-slate-800 text-white border-slate-700" : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10"
+                )}
+              >
+                <Settings size={14} />
+                {isEditingSettings ? 'Cerrar' : 'Configurar Link'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isEditingSettings && isAdmin && (
+          <div className="px-6 pb-8 border-t border-slate-800 pt-6 animate-in slide-in-from-top-4">
+            <div className="max-w-3xl space-y-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Link de la Carpeta General (Drive)</label>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input 
+                    type="url" 
+                    value={driveLinkInput}
+                    onChange={(e) => setDriveLinkInput(e.target.value)}
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all font-medium"
+                    placeholder="https://drive.google.com/..."
+                  />
+                  <button 
+                    onClick={handleUpdateLink}
+                    disabled={isSaving}
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold text-xs uppercase tracking-widest px-6 py-3 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isSaving ? <span className="animate-pulse">Guardando...</span> : <><Save size={14} /> Guardar Cambios</>}
+                  </button>
+                </div>
+              </div>
+              <p className="text-[9px] text-slate-500 italic">
+                Última actualización: {new Date(settings.updatedAt).toLocaleString()} por {settings.updatedBy}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           title="Evidencias Totales" 

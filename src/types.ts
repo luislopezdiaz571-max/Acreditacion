@@ -39,12 +39,8 @@ export interface DashboardStats {
   emptyCharacteristics: string[];
 }
 
-export type UserRole = "admin" | "user";
-
-export interface AuthorizedUser {
-  uid?: string;
-  email: string;
-  role: UserRole;
-  authorizedAt?: string;
-  authorizedBy?: string;
+export interface SystemSettings {
+  generalDriveLink: string;
+  updatedAt: string;
+  updatedBy: string;
 }

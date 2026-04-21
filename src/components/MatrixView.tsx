@@ -2,25 +2,38 @@
 import React, { useState } from 'react';
 import { Evidence, EvidenceStatus } from '../types';
 import { FACTORS, CHARACTERISTICS } from '../constants';
-import { Search, Info, HelpCircle, CheckCircle, ChevronDown, ChevronUp, ExternalLink, Calendar, User, FileText, Tag, Database } from 'lucide-react';
+import { Search, Info, HelpCircle, CheckCircle, ChevronDown, ChevronUp, ExternalLink, Calendar, User, FileText, Tag, Database, FolderOpen } from 'lucide-react';
 import { formatDate, cn } from '../utils';
+import { useSettings } from '../lib/SettingsContext';
 
 interface MatrixViewProps {
   evidences: Evidence[];
 }
 
 export default function MatrixView({ evidences }: MatrixViewProps) {
+  const { settings } = useSettings();
   const [activeFactor, setActiveFactor] = useState<number | null>(null);
   const [expandedChar, setExpandedChar] = useState<string | null>(null);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header className="bg-slate-900 p-10 rounded-2xl text-white shadow-xl shadow-slate-200 mb-12 relative overflow-hidden">
-        <div className="relative z-10 max-w-2xl">
-          <h2 className="text-3xl font-bold mb-3 tracking-tight">Explorador de Acreditación CNA</h2>
-          <p className="text-slate-400 text-sm leading-relaxed">
-            Navegue por factores y características para consultar las evidencias registradas. Todo el sistema se alimenta automáticamente de sus registros.
-          </p>
+        <div className="relative z-10 max-w-4xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="max-w-2xl">
+            <h2 className="text-3xl font-bold mb-3 tracking-tight">Explorador de Acreditación CNA</h2>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Navegue por factores y características para consultar las evidencias registradas. Todo el sistema se alimenta automáticamente de sus registros.
+            </p>
+          </div>
+          <a 
+            href={settings.generalDriveLink} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="shrink-0 bg-white/10 hover:bg-white/20 border border-white/10 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all"
+          >
+            <FolderOpen size={16} />
+            Carpeta General Drive
+          </a>
         </div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl -mr-32 -mt-32"></div>
       </header>
