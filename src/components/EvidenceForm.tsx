@@ -4,7 +4,7 @@ import { Evidence, EvidenceStatus, AcademicProgramId, EvidenceClassification } f
 import { FACTORS, CHARACTERISTICS, EVIDENCE_TYPES, PROGRAMS } from '../constants';
 import { generateId, cn } from '../utils';
 import { 
-  Save, X, Info, Sparkles, ExternalLink, FolderOpen, Check, Plus, Trash2, Layers 
+  Save, X, Info, Sparkles, ExternalLink, FolderOpen, Check, Plus, Trash2, Layers, ChevronRight 
 } from 'lucide-react';
 import { useSettings } from '../lib/SettingsContext';
 
@@ -13,6 +13,62 @@ interface EvidenceFormProps {
   onCancel: () => void;
   initialData?: Evidence;
   currentProgram?: AcademicProgramId;
+}
+
+function YearPicker({ value, options, onChange, onRemove, canRemove }: { value: number; options: number[]; onChange: (val: number) => void; onRemove?: () => void; canRemove?: boolean }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className="h-10 min-w-[100px] px-4 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-2 hover:border-blue-400 transition-all text-xs font-bold text-slate-700 shadow-sm"
+        >
+          {value}
+          <ChevronRight size={14} className={cn("text-slate-400 transition-transform", isOpen ? "rotate-90" : "")} />
+        </button>
+        {canRemove && onRemove && (
+          <button type="button" onClick={onRemove} className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors">
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute top-full left-0 mt-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white border border-slate-200 rounded-xl shadow-2xl p-1 w-28">
+              <div className="h-40 overflow-y-auto scrollbar-hide snap-y snap-mandatory flex flex-col pt-2 pb-2">
+                {options.map(y => (
+                  <button
+                    key={y}
+                    type="button"
+                    onClick={() => {
+                      onChange(y);
+                      setIsOpen(false);
+                    }}
+                    className={cn(
+                      "w-full h-8 flex-shrink-0 flex items-center justify-center text-[10px] font-black transition-all snap-center",
+                      value === y 
+                        ? "text-blue-600 bg-blue-50" 
+                        : "text-slate-400 hover:text-slate-700 hover:bg-slate-50"
+                    )}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+              <div className="absolute inset-x-0 top-1 h-4 bg-gradient-to-b from-white to-transparent pointer-events-none rounded-t-xl" />
+              <div className="absolute inset-x-0 bottom-1 h-4 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-xl" />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function EvidenceForm({ onSave, onCancel, initialData, currentProgram }: EvidenceFormProps) {
@@ -41,21 +97,31 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
   const [classifications, setClassifications] = useState<EvidenceClassification[]>(initialClassifications);
   const [suggesting, setSuggesting] = useState(false);
 
-  // Dynamic years list for selection
+  // Dynamic years list for selection - Scalable and persistent
   const yearOptions = (() => {
-    const start = 2010;
-    const end = new Date().getFullYear() + 10;
-    return Array.from({ length: end - start + 1 }, (_, i) => start + i).sort((a, b) => b - a);
+    const start = 2000;
+    const end = new Date().getFullYear() + 20;
+    const range = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+    const dataYears = initialData?.years || [];
+    return Array.from(new Set([...range, ...dataYears])).sort((a, b) => b - a);
   })();
 
-  const toggleYear = (y: number) => {
+  const addYear = () => {
     const currentYears = formData.years || [];
-    if (currentYears.includes(y)) {
-      if (currentYears.length <= 1) return; // Must have at least one
-      setFormData(prev => ({ ...prev, years: currentYears.filter(year => year !== y) }));
-    } else {
-      setFormData(prev => ({ ...prev, years: [...currentYears, y].sort((a, b) => b - a) }));
-    }
+    const lastYear = currentYears[currentYears.length - 1] || new Date().getFullYear();
+    setFormData(prev => ({ ...prev, years: [...currentYears, lastYear] }));
+  };
+
+  const updateYear = (index: number, val: number) => {
+    const updated = [...(formData.years || [])];
+    updated[index] = val;
+    setFormData(prev => ({ ...prev, years: updated }));
+  };
+
+  const removeYear = (index: number) => {
+    if ((formData.years || []).length <= 1) return;
+    const updated = (formData.years || []).filter((_, i) => i !== index);
+    setFormData(prev => ({ ...prev, years: updated }));
   };
 
   // Synchronize characteristic when factor changes in any classification
@@ -75,7 +141,9 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
   };
 
   const addClassification = () => {
-    setClassifications([...classifications, { factorId: 1, characteristicId: 'C1' }]);
+    const newCl = { factorId: 1, characteristicId: 'C1' };
+    // Prepend as requested to keep user focus
+    setClassifications([newCl, ...classifications]);
   };
 
   const removeClassification = (index: number) => {
@@ -102,12 +170,24 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
         .filter(word => word.length > 3 && !commonWords.has(word))
     )).slice(0, 10); // Limitar a 10 etiquetas
 
-    onSave({
-      ...formData as Evidence,
+    // Saneamiento de datos antes de guardar para máxima robustez
+    const sanitizedData: Evidence = {
+      id: formData.id || generateId(),
+      name: (formData.name || 'Sin título').trim(),
+      description: (formData.description || '').trim(),
+      observations: (formData.observations || '').trim(),
+      type: (formData.type || 'Otro').trim(),
+      status: formData.status || 'Pendiente',
+      supportLink: (formData.supportLink || '').trim(),
+      date: formData.date || '',
+      years: Array.from(new Set(formData.years || [new Date().getFullYear()])).sort((a, b) => b - a),
+      programs: Array.from(new Set(formData.programs || [])),
+      classifications: classifications.length > 0 ? classifications : [{ factorId: 1, characteristicId: 'C1' }],
       tags: autoTags,
-      classifications,
       createdAt: initialData?.createdAt || new Date().toISOString(),
-    });
+    };
+
+    onSave(sanitizedData);
   };
 
   const toggleProgram = (progId: string) => {
@@ -183,25 +263,27 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Año(s)*</label>
-                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl min-h-[50px]">
-                  {formData.years?.map(y => (
-                    <span key={y} className="px-2 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-bold flex items-center gap-2 animate-in zoom-in-95">
-                      {y}
-                      <button type="button" onClick={() => toggleYear(y)} className="hover:text-red-200 transition-colors">
-                        <X size={12} />
-                      </button>
-                    </span>
-                  ))}
-                  <select 
-                    value=""
-                    onChange={(e) => e.target.value && toggleYear(Number(e.target.value))}
-                    className="bg-transparent border-none text-[10px] font-bold text-slate-400 focus:ring-0 cursor-pointer outline-none uppercase tracking-widest"
-                  >
-                    <option value="">+ Añadir Año</option>
-                    {yearOptions.filter(y => !formData.years?.includes(y)).map(y => (
-                      <option key={y} value={y}>{y}</option>
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-3">
+                    {formData.years?.map((y, idx) => (
+                      <YearPicker 
+                        key={idx} 
+                        value={y} 
+                        options={yearOptions} 
+                        onChange={(val) => updateYear(idx, val)}
+                        onRemove={() => removeYear(idx)}
+                        canRemove={(formData.years || []).length > 1}
+                      />
                     ))}
-                  </select>
+                  </div>
+                  
+                  <button 
+                    type="button"
+                    onClick={addYear}
+                    className="flex items-center gap-2 text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest transition-colors py-1"
+                  >
+                    <Plus size={14} /> agregar otro año
+                  </button>
                 </div>
               </div>
             </div>
@@ -282,7 +364,7 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
               </label>
               <button 
                 type="button" 
-                onClick={addClassification}
+                onClick={() => addClassification()}
                 className="flex items-center gap-2 text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest transition-colors"
               >
                 <Plus size={14} /> Agregar otra clasificación
@@ -297,15 +379,27 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
                 return (
                   <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl border border-slate-200 relative group animate-in slide-in-from-top-2 duration-300">
                     {classifications.length > 1 && (
-                      <button 
-                        type="button"
-                        onClick={() => removeClassification(index)}
-                        className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white border border-rose-100 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100"
-                        title="Eliminar esta clasificación"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="absolute -top-2 -right-2 flex gap-1 group-hover:opacity-100 opacity-0 transition-opacity">
+                        <button 
+                          type="button"
+                          onClick={() => removeClassification(index)}
+                          className="w-8 h-8 rounded-full bg-white border border-rose-100 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                          title="Eliminar esta clasificación"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     )}
+
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10 group-hover:opacity-100 opacity-0 transition-opacity">
+                      <button 
+                        type="button" 
+                        onClick={addClassification}
+                        className="flex items-center gap-2 px-4 py-1.5 bg-white border border-blue-200 text-[9px] font-black text-blue-600 rounded-full shadow-lg hover:bg-blue-600 hover:text-white transition-all uppercase tracking-widest"
+                      >
+                        <Plus size={12} /> agregar otra clasificación
+                      </button>
+                    </div>
 
                     <div className="space-y-1">
                       <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Factor {index + 1}</label>

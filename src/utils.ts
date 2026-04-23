@@ -18,9 +18,14 @@ export function generateId() {
 
 /**
  * Formats a date string to a readable format in Spanish.
+ * Safe against invalid dates.
  */
-export function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString('es-CO', {
+export function formatDate(dateString: string | undefined | null) {
+  if (!dateString) return 'Sin fecha';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Fecha inválida';
+  
+  return date.toLocaleDateString('es-CO', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'

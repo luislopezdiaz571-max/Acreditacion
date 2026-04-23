@@ -133,7 +133,7 @@ export default function MatrixView({ evidences, filterYear, availableYears, onYe
                                   <HelpCircle size={14} className="text-amber-500" /> Ejemplos sugeridos
                                </h5>
                                <div className="flex flex-wrap gap-2">
-                                 {char.examples.map((ex, i) => (
+                                 {char.examples?.map((ex, i) => (
                                    <span key={i} className="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-bold border border-amber-100 uppercase tracking-tight">
                                      {ex}
                                    </span>
@@ -199,7 +199,7 @@ function EvidenceCompactCard({ evidence }: { evidence: Evidence }) {
               ))}
             </div>
             <div className="flex flex-wrap gap-1">
-               {evidence.programs.map(p => (
+               {(evidence.programs || []).map(p => (
                  <span key={p} className="text-[8px] font-black py-0.5 px-1.5 bg-slate-100 text-slate-500 rounded border border-slate-200 uppercase tracking-tight">
                    {p}
                  </span>
@@ -207,11 +207,11 @@ function EvidenceCompactCard({ evidence }: { evidence: Evidence }) {
             </div>
           </div>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-lg">
-            {evidence.years?.length > 1 
+            {(evidence.years && evidence.years.length > 0)
               ? (Math.max(...evidence.years) - Math.min(...evidence.years) === evidence.years.length - 1 && evidence.years.length > 2
                  ? `${Math.min(...evidence.years)} - ${Math.max(...evidence.years)}` 
-                 : evidence.years.sort((a,b)=>a-b).join(', '))
-              : (evidence.years?.[0] || 'N/A')}
+                 : [...evidence.years].sort((a,b)=>a-b).join(', '))
+              : 'N/A'}
           </span>
         </div>
         

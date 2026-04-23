@@ -38,7 +38,7 @@ export default function EvidenceList({
   const filtered = evidences.filter(e => {
     const matchesSearch = e.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          e.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         e.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
+                         (e.tags || []).some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesFactor = filterFactor === 'all' || e.classifications.some(c => c.factorId === filterFactor);
     const matchesType = filterType === 'all' || e.type === filterType;
@@ -152,7 +152,7 @@ function EvidenceCard({ evidence, onEdit, onDelete }: {
               ))}
             </div>
             <div className="flex gap-2 flex-wrap mt-2">
-               {evidence.programs.map(p => (
+               {(evidence.programs || []).map(p => (
                  <span key={p} className="text-[9px] font-bold py-0.5 px-2 bg-slate-900 text-slate-200 rounded-md uppercase tracking-tight">
                    {p}
                  </span>
@@ -162,11 +162,11 @@ function EvidenceCard({ evidence, onEdit, onDelete }: {
           <div className="flex flex-col items-end gap-2">
             <StatusBadge status={evidence.status} />
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-              {evidence.years?.length > 1 
+              {(evidence.years && evidence.years.length > 0)
                 ? (Math.max(...evidence.years) - Math.min(...evidence.years) === evidence.years.length - 1 && evidence.years.length > 2
                    ? `${Math.min(...evidence.years)} - ${Math.max(...evidence.years)}` 
-                   : evidence.years.sort((a,b)=>a-b).join(', '))
-                : (evidence.years?.[0] || 'N/A')}
+                   : [...evidence.years].sort((a,b)=>a-b).join(', '))
+                : 'N/A'}
             </span>
           </div>
         </div>

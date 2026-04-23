@@ -66,14 +66,16 @@ export default function Dashboard({ evidences, filterYear, availableYears, onYea
       };
     }).sort((a, b) => b.coveragePercent - a.coveragePercent);
 
-    const mostCompleteFactor = factorStats[0];
-    const leastCompleteFactor = factorStats[factorStats.length - 1];
+    const mostCompleteFactor = factorStats.length > 0 ? factorStats[0] : null;
+    const leastCompleteFactor = factorStats.length > 0 ? factorStats[factorStats.length - 1] : null;
 
     // Yearly evolution
     const yearMap: Record<number, number> = {};
     evidences.forEach(e => {
        (e.years || []).forEach(y => {
-         yearMap[y] = (yearMap[y] || 0) + 1;
+         if (y && !isNaN(Number(y))) {
+           yearMap[y] = (yearMap[y] || 0) + 1;
+         }
        });
     });
     const yearlyData = Object.keys(yearMap)
@@ -82,7 +84,7 @@ export default function Dashboard({ evidences, filterYear, availableYears, onYea
 
     // Program distribution
     const programStats = PROGRAMS.map(p => {
-      const count = evidences.filter(e => e.programs.includes(p.id)).length;
+      const count = evidences.filter(e => Array.isArray(e.programs) && e.programs.includes(p.id)).length;
       return { 
         name: p.name.length > 15 ? p.name.substring(0, 15) + '...' : p.name, 
         count,
@@ -202,7 +204,9 @@ export default function Dashboard({ evidences, filterYear, availableYears, onYea
           title="Factor más Completo" 
           value={dashboardStats.mostCompleteFactor?.shortName || '-'} 
           icon={<TrendingUp size={24} />}
-          description={dashboardStats.mostCompleteFactor?.fullName.substring(0, 20) + "..."}
+          description={dashboardStats.mostCompleteFactor?.fullName 
+            ? dashboardStats.mostCompleteFactor.fullName.substring(0, 20) + "..." 
+            : "No hay datos disponibles"}
           color="emerald"
         />
       </div>

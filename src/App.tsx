@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Evidence, AcademicProgramId, YearFilter } from './types';
+import { Evidence, AcademicProgramId, YearFilter, EvidenceStatus, EvidenceClassification } from './types';
 import Dashboard from './components/Dashboard';
 import EvidenceForm from './components/EvidenceForm';
 import EvidenceList from './components/EvidenceList';
@@ -9,7 +9,7 @@ import { cn } from './utils';
 import { db, handleFirestoreError } from './lib/firebase';
 import { collection, onSnapshot, query, setDoc, doc, deleteDoc, orderBy } from 'firebase/firestore';
 import { 
-  Plus, LayoutDashboard, Database, Table, Menu, Search, Loader2, Music, GraduationCap, Users, History, Filter, ChevronRight, Home, CalendarDays
+  Plus, LayoutDashboard, Database, Table, Menu, Search, Loader2, Music, GraduationCap, Users, History, Filter, ChevronRight, Home, CalendarDays, AlertCircle, X
 } from 'lucide-react';
 import { PROGRAMS } from './constants';
 
@@ -17,12 +17,15 @@ import Logo from './components/Logo';
 import YearSelectorComponent from './components/YearSelector';
 
 import { SettingsProvider } from './lib/SettingsContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   return (
-    <SettingsProvider>
-      <MainApp />
-    </SettingsProvider>
+    <ErrorBoundary>
+      <SettingsProvider>
+        <MainApp />
+      </SettingsProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -34,6 +37,7 @@ function MainApp() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [filterYear, setFilterYear] = useState<YearFilter>({ type: 'all' });
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Firestore Sync for Evidences
   useEffect(() => {
@@ -44,30 +48,61 @@ function MainApp() {
       const eList = snapshot.docs.map(doc => {
         const data = doc.data();
         
-        // Normalización de clasificaciones
-        const classifications = data.classifications || (
-          (data.factorId && data.characteristicId) 
-            ? [{ factorId: Number(data.factorId), characteristicId: String(data.characteristicId) }] 
-            : []
-        );
+        // Normalización ultra-defensiva para máxima robustez
+        const id = doc.id || 'err-' + Math.random().toString(36).substring(7);
+        const name = String(data.name || 'Sin título').trim();
+        const description = String(data.description || '').trim();
+        const observations = String(data.observations || '').trim();
+        const type = String(data.type || 'Otro').trim();
+        const status = (['Completo', 'Parcial', 'Pendiente'].includes(data.status) ? data.status : 'Pendiente') as EvidenceStatus;
+        const supportLink = data.supportLink ? String(data.supportLink).trim() : '';
+        const date = data.date ? String(data.date).trim() : '';
+        
+        // Clasificaciones: Mapeo seguro
+        let classifications: EvidenceClassification[] = [];
+        if (Array.isArray(data.classifications)) {
+          classifications = data.classifications.map(c => ({
+            factorId: Number(c.factorId) || 1,
+            characteristicId: String(c.characteristicId || 'C1')
+          }));
+        } else if (data.factorId && data.characteristicId) {
+          classifications = [{ factorId: Number(data.factorId), characteristicId: String(data.characteristicId) }];
+        }
 
-        // Normalización de años: Garantizar que siempre sea un array de números
+        // Años: Garantizar array de números únicos y válidos
         let yearsField: number[] = [];
         if (Array.isArray(data.years) && data.years.length > 0) {
-          yearsField = data.years.map(Number);
-        } else if (data.year) {
+          yearsField = Array.from(new Set(data.years.map(Number).filter(y => !isNaN(y))));
+        } else if (data.year && !isNaN(Number(data.year))) {
           yearsField = [Number(data.year)];
         } else {
           yearsField = [new Date().getFullYear()];
         }
 
+        // Programas: Array de strings válidos
+        let programs: string[] = [];
+        if (Array.isArray(data.programs)) {
+          programs = data.programs.map(String).filter(p => p.length > 0);
+        }
+
+        // Etiquetas: Array de strings
+        const tags = Array.isArray(data.tags) ? data.tags.map(String) : [];
+        const createdAt = data.createdAt || new Date(0).toISOString();
+
         return {
-          ...data,
-          id: doc.id,
+          id,
+          name,
+          description,
+          observations,
+          type,
+          status,
+          supportLink,
+          date,
           classifications,
           years: yearsField,
-          // Asegurar que createdAt exista para el sorteo en memoria
-          createdAt: data.createdAt || new Date(0).toISOString()
+          programs,
+          tags,
+          createdAt
         } as Evidence;
       });
 
@@ -94,7 +129,8 @@ function MainApp() {
       await setDoc(doc(db, 'evidences', data.id), data);
       setEditingEvidence(undefined);
       setView('historial');
-    } catch (e) {
+    } catch (e: any) {
+      setErrorMessage(`Error al guardar: ${e.message || 'Error desconocido'}`);
       handleFirestoreError(e, editingEvidence ? 'update' : 'create', `evidences/${data.id}`);
     }
   };
@@ -108,7 +144,8 @@ function MainApp() {
     if (!confirm('¿Está seguro de que desea eliminar este registro?')) return;
     try {
       await deleteDoc(doc(db, 'evidences', id));
-    } catch (e) {
+    } catch (e: any) {
+      setErrorMessage(`Error al eliminar: ${e.message || 'Error desconocido'}`);
       handleFirestoreError(e, 'delete', `evidences/${id}`);
     }
   };
@@ -116,9 +153,9 @@ function MainApp() {
   const years = React.useMemo(() => {
     const dataYears = evidences.flatMap(e => e.years || []);
     const currentYear = new Date().getFullYear();
-    // Rango dinámico: desde 2010 hasta 10 años adelante del actual
-    const startYear = 2010;
-    const endYear = currentYear + 10;
+    // Rango dinámico extendido: desde 2000 hasta 20 años adelante del actual
+    const startYear = 2000;
+    const endYear = currentYear + 20;
     const baseRange = Array.from({ length: endYear - startYear + 1 }, (_, i) => startYear + i);
     
     return Array.from(new Set([...baseRange, ...dataYears])).sort((a, b) => b - a);
@@ -269,6 +306,18 @@ function MainApp() {
         </header>
 
         <div className="p-8 max-w-[1400px] mx-auto w-full">
+          {errorMessage && (
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between text-rose-700 animate-in slide-in-from-top-4 duration-500">
+               <div className="flex items-center gap-3">
+                 <AlertCircle size={20} />
+                 <p className="text-sm font-bold">{errorMessage}</p>
+               </div>
+               <button onClick={() => setErrorMessage(null)} className="p-1 hover:bg-rose-100 rounded-lg">
+                 <X size={16} />
+               </button>
+            </div>
+          )}
+
           {loading && (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-4" />
