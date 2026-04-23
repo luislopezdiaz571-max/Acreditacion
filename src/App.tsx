@@ -37,28 +37,49 @@ function MainApp() {
 
   // Firestore Sync for Evidences
   useEffect(() => {
-    const q = query(collection(db, 'evidences'), orderBy('year', 'desc'));
+    // Eliminamos el orderBy del servidor para evitar que Firestore ignore documentos
+    // que no poseen un campo específico (era lo que causaba que desaparecieran).
+    const q = query(collection(db, 'evidences'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const eList = snapshot.docs.map(doc => {
         const data = doc.data();
-        // Normalización para compatibilidad con registros antiguos
+        
+        // Normalización de clasificaciones
         const classifications = data.classifications || (
           (data.factorId && data.characteristicId) 
             ? [{ factorId: Number(data.factorId), characteristicId: String(data.characteristicId) }] 
             : []
         );
 
-        // Normalización de años (de year a years)
-        const yearsField = data.years || (data.year ? [Number(data.year)] : []);
+        // Normalización de años: Garantizar que siempre sea un array de números
+        let yearsField: number[] = [];
+        if (Array.isArray(data.years) && data.years.length > 0) {
+          yearsField = data.years.map(Number);
+        } else if (data.year) {
+          yearsField = [Number(data.year)];
+        } else {
+          yearsField = [new Date().getFullYear()];
+        }
 
         return {
           ...data,
           id: doc.id,
           classifications,
-          years: yearsField
+          years: yearsField,
+          // Asegurar que createdAt exista para el sorteo en memoria
+          createdAt: data.createdAt || new Date(0).toISOString()
         } as Evidence;
       });
-      setEvidences(eList);
+
+      // Ordenar en memoria: por el año más reciente (el mayor del array de años)
+      const sortedList = [...eList].sort((a, b) => {
+        const yearA = a.years?.length ? Math.max(...a.years) : 0;
+        const yearB = b.years?.length ? Math.max(...b.years) : 0;
+        if (yearA !== yearB) return yearB - yearA;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      setEvidences(sortedList);
       setLoading(false);
     }, (error) => {
       console.error("Firestore sync error", error);
@@ -122,14 +143,6 @@ function MainApp() {
       return true;
     });
   }, [evidences, selectedProgram, filterYear]);
-
-  const YearSelector = () => (
-    <YearSelectorComponent 
-      years={years} 
-      filterYear={filterYear} 
-      onYearChange={setFilterYear} 
-    />
-  );
 
   if (!selectedProgram) {
     return (
@@ -236,7 +249,13 @@ function MainApp() {
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
               <Menu size={20} />
             </button>
-            {view !== 'registrar' && <YearSelector />}
+            {view !== 'registrar' && (
+              <YearSelectorComponent 
+                years={years} 
+                filterYear={filterYear} 
+                onYearChange={setFilterYear} 
+              />
+            )}
           </div>
           
           <div className="text-right">

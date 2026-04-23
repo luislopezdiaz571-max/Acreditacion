@@ -25,7 +25,7 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
 
   const [formData, setFormData] = useState<Partial<Evidence>>({
     id: initialData?.id || generateId(),
-    years: initialData?.years || (initialData?.years ? initialData.years : [new Date().getFullYear()]),
+    years: initialData?.years || [new Date().getFullYear()],
     date: initialData?.date || '',
     name: initialData?.name || '',
     programs: initialData?.programs || (currentProgram && currentProgram !== 'consolidated' ? [currentProgram] : []),
