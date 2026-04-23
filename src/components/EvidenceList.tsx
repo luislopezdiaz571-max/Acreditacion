@@ -161,7 +161,13 @@ function EvidenceCard({ evidence, onEdit, onDelete }: {
           </div>
           <div className="flex flex-col items-end gap-2">
             <StatusBadge status={evidence.status} />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{evidence.year}</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+              {evidence.years?.length > 1 
+                ? (Math.max(...evidence.years) - Math.min(...evidence.years) === evidence.years.length - 1 && evidence.years.length > 2
+                   ? `${Math.min(...evidence.years)} - ${Math.max(...evidence.years)}` 
+                   : evidence.years.sort((a,b)=>a-b).join(', '))
+                : (evidence.years?.[0] || 'N/A')}
+            </span>
           </div>
         </div>
 
@@ -203,7 +209,7 @@ function EvidenceCard({ evidence, onEdit, onDelete }: {
         <div className="grid grid-cols-1 gap-4 text-[10px] uppercase font-bold tracking-widest text-slate-400 pt-4 border-t border-slate-50">
           <div className="flex items-center gap-2">
             <Calendar size={14} className="text-slate-300" />
-            {evidence.date ? formatDate(evidence.date) : evidence.year}
+            {evidence.date ? formatDate(evidence.date) : (evidence.years?.length > 1 ? `${Math.min(...evidence.years)} - ${Math.max(...evidence.years)}` : (evidence.years?.[0] || 'N/A'))}
           </div>
           <div className="flex items-center gap-2 truncate">
             <Tag size={14} className="text-slate-300" />

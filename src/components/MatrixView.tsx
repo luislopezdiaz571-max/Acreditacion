@@ -207,7 +207,11 @@ function EvidenceCompactCard({ evidence }: { evidence: Evidence }) {
             </div>
           </div>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded-lg">
-            AÑO {evidence.year}
+            {evidence.years?.length > 1 
+              ? (Math.max(...evidence.years) - Math.min(...evidence.years) === evidence.years.length - 1 && evidence.years.length > 2
+                 ? `${Math.min(...evidence.years)} - ${Math.max(...evidence.years)}` 
+                 : evidence.years.sort((a,b)=>a-b).join(', '))
+              : (evidence.years?.[0] || 'N/A')}
           </span>
         </div>
         

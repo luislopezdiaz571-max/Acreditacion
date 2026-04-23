@@ -72,7 +72,9 @@ export default function Dashboard({ evidences, filterYear, availableYears, onYea
     // Yearly evolution
     const yearMap: Record<number, number> = {};
     evidences.forEach(e => {
-       yearMap[e.year] = (yearMap[e.year] || 0) + 1;
+       (e.years || []).forEach(y => {
+         yearMap[y] = (yearMap[y] || 0) + 1;
+       });
     });
     const yearlyData = Object.keys(yearMap)
       .map(y => ({ year: y, count: yearMap[Number(y)] }))

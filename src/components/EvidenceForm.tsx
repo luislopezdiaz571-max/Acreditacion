@@ -25,7 +25,7 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
 
   const [formData, setFormData] = useState<Partial<Evidence>>({
     id: initialData?.id || generateId(),
-    year: initialData?.year || new Date().getFullYear(),
+    years: initialData?.years || (initialData?.years ? initialData.years : [new Date().getFullYear()]),
     date: initialData?.date || '',
     name: initialData?.name || '',
     programs: initialData?.programs || (currentProgram && currentProgram !== 'consolidated' ? [currentProgram] : []),
@@ -40,6 +40,23 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
 
   const [classifications, setClassifications] = useState<EvidenceClassification[]>(initialClassifications);
   const [suggesting, setSuggesting] = useState(false);
+
+  // Dynamic years list for selection
+  const yearOptions = (() => {
+    const start = 2010;
+    const end = new Date().getFullYear() + 10;
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i).sort((a, b) => b - a);
+  })();
+
+  const toggleYear = (y: number) => {
+    const currentYears = formData.years || [];
+    if (currentYears.includes(y)) {
+      if (currentYears.length <= 1) return; // Must have at least one
+      setFormData(prev => ({ ...prev, years: currentYears.filter(year => year !== y) }));
+    } else {
+      setFormData(prev => ({ ...prev, years: [...currentYears, y].sort((a, b) => b - a) }));
+    }
+  };
 
   // Synchronize characteristic when factor changes in any classification
   const updateClassification = (index: number, field: keyof EvidenceClassification, value: any) => {
@@ -68,8 +85,8 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.year || !formData.programs?.length) {
-      alert("Por favor complete los campos obligatorios: Nombre, Año y al menos un Programa.");
+    if (!formData.name || !formData.years?.length || !formData.programs?.length) {
+      alert("Por favor complete los campos obligatorios: Nombre, Años y al menos un Programa.");
       return;
     }
 
@@ -165,16 +182,27 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Año*</label>
-                <input 
-                  type="number" 
-                  value={formData.year}
-                  onChange={e => setFormData({...formData, year: Number(e.target.value)})}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold text-slate-900"
-                  required
-                  min="2000"
-                  max="2100"
-                />
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Año(s)*</label>
+                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl min-h-[50px]">
+                  {formData.years?.map(y => (
+                    <span key={y} className="px-2 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-bold flex items-center gap-2 animate-in zoom-in-95">
+                      {y}
+                      <button type="button" onClick={() => toggleYear(y)} className="hover:text-red-200 transition-colors">
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ))}
+                  <select 
+                    value=""
+                    onChange={(e) => e.target.value && toggleYear(Number(e.target.value))}
+                    className="bg-transparent border-none text-[10px] font-bold text-slate-400 focus:ring-0 cursor-pointer outline-none uppercase tracking-widest"
+                  >
+                    <option value="">+ Añadir Año</option>
+                    {yearOptions.filter(y => !formData.years?.includes(y)).map(y => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
@@ -218,13 +246,16 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Tipo de Evidencia</label>
-              <select 
+              <input 
+                list="evidence-types"
                 value={formData.type}
                 onChange={e => setFormData({...formData, type: e.target.value})}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold text-slate-700"
-              >
-                {EVIDENCE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+                placeholder="Seleccione o escriba el tipo..."
+              />
+              <datalist id="evidence-types">
+                {EVIDENCE_TYPES.map(t => <option key={t} value={t} />)}
+              </datalist>
             </div>
           </div>
 

@@ -22,7 +22,7 @@ export interface EvidenceClassification {
 
 export interface Evidence {
   id: string;
-  year: number;
+  years: number[];
   date?: string;
   name: string;
   programs: string[]; // Selection of academic programs

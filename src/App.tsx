@@ -48,10 +48,14 @@ function MainApp() {
             : []
         );
 
+        // Normalización de años (de year a years)
+        const yearsField = data.years || (data.year ? [Number(data.year)] : []);
+
         return {
           ...data,
           id: doc.id,
-          classifications
+          classifications,
+          years: yearsField
         } as Evidence;
       });
       setEvidences(eList);
@@ -89,7 +93,7 @@ function MainApp() {
   };
 
   const years = React.useMemo(() => {
-    const dataYears = evidences.map(e => e.year);
+    const dataYears = evidences.flatMap(e => e.years || []);
     const currentYear = new Date().getFullYear();
     // Rango dinámico: desde 2010 hasta 10 años adelante del actual
     const startYear = 2010;
@@ -110,10 +114,10 @@ function MainApp() {
     return base.filter(e => {
       if (filterYear.type === 'all') return true;
       if (filterYear.type === 'single' && filterYear.year) {
-        return e.year === filterYear.year;
+        return e.years.includes(filterYear.year);
       }
       if (filterYear.type === 'range' && filterYear.startYear && filterYear.endYear) {
-        return e.year >= filterYear.startYear && e.year <= filterYear.endYear;
+        return e.years.some(y => y >= (filterYear.startYear ?? 0) && y <= (filterYear.endYear ?? 0));
       }
       return true;
     });
