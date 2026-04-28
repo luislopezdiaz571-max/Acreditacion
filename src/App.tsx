@@ -9,9 +9,10 @@ import { cn } from './utils';
 import { db, handleFirestoreError } from './lib/firebase';
 import { collection, onSnapshot, query, setDoc, doc, deleteDoc, orderBy } from 'firebase/firestore';
 import { 
-  Plus, LayoutDashboard, Database, Table, Menu, Search, Loader2, Music, GraduationCap, Users, History, Filter, ChevronRight, Home, CalendarDays, AlertCircle, X
+  Plus, LayoutDashboard, Database, Table, Menu, Search, Loader2, Music, GraduationCap, Users, History, Filter, ChevronRight, Home, CalendarDays, AlertCircle, X, FileDown
 } from 'lucide-react';
 import { PROGRAMS } from './constants';
+import { exportToExcel } from './lib/excelExport';
 
 import Logo from './components/Logo';
 import YearSelectorComponent from './components/YearSelector';
@@ -57,6 +58,7 @@ function MainApp() {
         const status = (['Completo', 'Parcial', 'Pendiente'].includes(data.status) ? data.status : 'Pendiente') as EvidenceStatus;
         const supportLink = data.supportLink ? String(data.supportLink).trim() : '';
         const date = data.date ? String(data.date).trim() : '';
+        const source = data.source ? String(data.source).trim() : '';
         
         // Clasificaciones: Mapeo seguro
         let classifications: EvidenceClassification[] = [];
@@ -102,6 +104,7 @@ function MainApp() {
           years: yearsField,
           programs,
           tags,
+          source,
           createdAt
         } as Evidence;
       });
@@ -207,7 +210,18 @@ function MainApp() {
                   <h3 className="text-lg font-bold text-slate-900 tracking-tight group-hover:text-blue-700 transition-colors leading-tight">{prog.name}</h3>
                   <p className="text-slate-500 text-xs mt-2 font-medium leading-relaxed">Gestión individual del programa y repositorio.</p>
                 </div>
-                <div className="mt-auto w-full flex justify-end pt-4">
+                <div className="mt-auto w-full flex items-center justify-between pt-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const programEvidences = evidences.filter(ev => ev.programs.includes(prog.id));
+                      exportToExcel(programEvidences, `Consolidado - ${prog.name}`);
+                    }}
+                    className="p-2 bg-slate-50 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all border border-transparent hover:border-blue-100"
+                    title="Exportar este programa a Excel"
+                  >
+                    <FileDown size={18} />
+                  </button>
                   <span className="p-1.5 bg-slate-50 rounded-full text-slate-400 group-hover:text-blue-600 group-hover:bg-blue-50 transition-all">
                     <ChevronRight size={16} />
                   </span>
@@ -227,7 +241,17 @@ function MainApp() {
                 <h3 className="text-lg font-bold text-white tracking-tight group-hover:text-blue-400 transition-colors leading-tight uppercase">Vista Consolidada General</h3>
                 <p className="text-slate-400 text-xs mt-2 font-medium leading-relaxed">Consulta global de los tres programas para informes y presentaciones.</p>
               </div>
-              <div className="mt-auto w-full flex justify-end pt-4">
+              <div className="mt-auto w-full flex items-center justify-between pt-4">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    exportToExcel(evidences, 'Consolidado General - Completo');
+                  }}
+                  className="p-2 bg-slate-800 rounded-xl text-slate-500 hover:text-white hover:bg-blue-600 transition-all border border-transparent hover:border-blue-400/30"
+                  title="Exportar todo a Excel"
+                >
+                  <FileDown size={18} />
+                </button>
                 <span className="p-1.5 bg-slate-800 rounded-full text-slate-500 group-hover:text-white group-hover:bg-slate-700 transition-all">
                   <ChevronRight size={16} />
                 </span>
@@ -295,13 +319,27 @@ function MainApp() {
             )}
           </div>
           
-          <div className="text-right">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
-               {selectedProgram === 'consolidated' ? 'Vista Activa' : 'Programa seleccionado'}
-             </p>
-             <p className="text-base font-black text-slate-900 leading-tight">
-               {selectedProgram === 'consolidated' ? 'Consolidado General' : selectedProgram}
-             </p>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => {
+                // El usuario solicita que el reporte consolidado contenga todas las evidencias
+                // pero respetando la integridad de los datos. Pasamos el set completo.
+                exportToExcel(evidences, 'Consolidado General - Gestión de Evidencias');
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-600 transition-all shadow-lg active:scale-95"
+              title="Descargar Reporte Completo (Multiprograma)"
+            >
+              <FileDown size={16} />
+              <span className="hidden sm:inline">Reporte Consolidado</span>
+            </button>
+            <div className="text-right">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
+                 {selectedProgram === 'consolidated' ? 'Vista Activa' : 'Programa seleccionado'}
+               </p>
+               <p className="text-base font-black text-slate-900 leading-tight">
+                 {selectedProgram === 'consolidated' ? 'Consolidado General' : selectedProgram}
+               </p>
+            </div>
           </div>
         </header>
 

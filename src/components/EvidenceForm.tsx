@@ -184,6 +184,7 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
       programs: Array.from(new Set(formData.programs || [])),
       classifications: classifications.length > 0 ? classifications : [{ factorId: 1, characteristicId: 'C1' }],
       tags: autoTags,
+      source: (formData.source || '').trim(),
       createdAt: initialData?.createdAt || new Date().toISOString(),
     };
 
@@ -353,6 +354,17 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
                 <option value="Parcial">Parcial</option>
                 <option value="Completo">Completo</option>
               </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fuente / Origen (Ej: Carpeta 2024)</label>
+              <input 
+                type="text" 
+                value={formData.source}
+                onChange={e => setFormData({...formData, source: e.target.value})}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
+                placeholder="Ruta o folder de origen..."
+              />
             </div>
           </div>
 
