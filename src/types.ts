@@ -32,7 +32,6 @@ export interface Evidence {
   supportLink?: string; // Optional link
   status: EvidenceStatus;
   observations: string;
-  source?: string;
   tags: string[];
   createdAt: string;
 }

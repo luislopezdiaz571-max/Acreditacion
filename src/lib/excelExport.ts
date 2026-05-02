@@ -39,7 +39,6 @@ function formatEvidenceRow(e: Evidence) {
     'Tipo': e.type,
     'Link de Soporte': e.supportLink || 'N/A',
     'Estado': e.status,
-    'Fuente': e.source || 'N/A',
     'Observaciones': e.observations,
     'Etiquetas': e.tags.join(', '),
     'Fecha de Registro': new Date(e.createdAt).toLocaleString(),
@@ -62,7 +61,6 @@ function setWorksheetColWidths(ws: XLSX.WorkSheet) {
     { wch: 20 }, // Tipo
     { wch: 40 }, // Link
     { wch: 15 }, // Estado
-    { wch: 20 }, // Fuente
     { wch: 40 }, // Observaciones
     { wch: 30 }, // Etiquetas
     { wch: 20 }, // Fecha Registro

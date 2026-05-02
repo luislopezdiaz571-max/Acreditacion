@@ -32,7 +32,6 @@ export default function EvidenceList({
 }: EvidenceListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterFactor, setFilterFactor] = useState<number | 'all'>('all');
-  const [filterType, setFilterType] = useState<string | 'all'>('all');
   const [filterProgram, setFilterProgram] = useState<string | 'all'>('all');
 
   const filtered = evidences.filter(e => {
@@ -41,10 +40,9 @@ export default function EvidenceList({
                          (e.tags || []).some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesFactor = filterFactor === 'all' || e.classifications.some(c => c.factorId === filterFactor);
-    const matchesType = filterType === 'all' || e.type === filterType;
     const matchesProgram = filterProgram === 'all' || e.programs.includes(filterProgram);
 
-    return matchesSearch && matchesFactor && matchesType && matchesProgram;
+    return matchesSearch && matchesFactor && matchesProgram;
   });
 
   return (
@@ -70,7 +68,7 @@ export default function EvidenceList({
           </button>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="flex items-center gap-2 bg-slate-50 px-3 rounded-xl border border-slate-200">
             <Filter size={14} className="text-slate-400" />
             <select 
@@ -80,18 +78,6 @@ export default function EvidenceList({
             >
               <option value="all">TODOS LOS FACTORES</option>
               {FACTORS.map(f => <option key={f.id} value={f.id}>FACTOR {f.id}</option>)}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-2 bg-slate-50 px-3 rounded-xl border border-slate-200">
-            <Tag size={14} className="text-slate-400" />
-            <select 
-              value={filterType}
-              onChange={e => setFilterType(e.target.value)}
-              className="flex-1 py-2.5 bg-transparent border-none text-[10px] font-bold uppercase tracking-widest text-slate-600 focus:ring-0 cursor-pointer"
-            >
-              <option value="all">TODOS LOS TIPOS</option>
-              {EVIDENCE_TYPES.map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
             </select>
           </div>
 
@@ -216,16 +202,6 @@ function EvidenceCard({ evidence, onEdit, onDelete }: {
             {evidence.type}
           </div>
         </div>
-        
-        {evidence.tags && evidence.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {evidence.tags.map(tag => (
-              <span key={tag} className="px-2 py-0.5 bg-slate-50 text-slate-500 rounded-md text-[9px] font-bold border border-slate-200/50 tracking-tight">
-                #{tag.toUpperCase()}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="bg-slate-50/80 px-6 py-4 flex justify-between items-center border-t border-slate-100">

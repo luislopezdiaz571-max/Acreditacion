@@ -90,7 +90,6 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
     supportLink: initialData?.supportLink || '',
     status: initialData?.status || 'Pendiente',
     observations: initialData?.observations || '',
-    source: initialData?.source || '',
     tags: initialData?.tags || [],
   });
 
@@ -184,7 +183,6 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
       programs: Array.from(new Set(formData.programs || [])),
       classifications: classifications.length > 0 ? classifications : [{ factorId: 1, characteristicId: 'C1' }],
       tags: autoTags,
-      source: (formData.source || '').trim(),
       createdAt: initialData?.createdAt || new Date().toISOString(),
     };
 
@@ -355,17 +353,6 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
                 <option value="Completo">Completo</option>
               </select>
             </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fuente / Origen (Ej: Carpeta 2024)</label>
-              <input 
-                type="text" 
-                value={formData.source}
-                onChange={e => setFormData({...formData, source: e.target.value})}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold"
-                placeholder="Ruta o folder de origen..."
-              />
-            </div>
           </div>
 
           {/* Clasificaciones Múltiples */}
@@ -475,7 +462,6 @@ export default function EvidenceForm({ onSave, onCancel, initialData, currentPro
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm font-bold text-blue-700"
                 placeholder="Ej: https://drive.google.com/... (Se puede añadir después)"
               />
-              <p className="text-[9px] text-slate-400 font-medium italic mt-1">El sistema generará etiquetas automáticas a partir del nombre y la descripción para facilitar la organización.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

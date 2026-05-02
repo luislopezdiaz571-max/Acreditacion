@@ -35,10 +35,18 @@ function MainApp() {
   const [view, setView] = useState<'dashboard' | 'registrar' | 'historial' | 'vista-general' | 'seguimiento'>('dashboard');
   const [evidences, setEvidences] = useState<Evidence[]>([]);
   const [editingEvidence, setEditingEvidence] = useState<Evidence | undefined>(undefined);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 1024);
   const [loading, setLoading] = useState(true);
   const [filterYear, setFilterYear] = useState<YearFilter>({ type: 'all' });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Close sidebar on navigation on mobile
+  const handleViewChange = (newView: typeof view) => {
+    setView(newView);
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  };
 
   // Firestore Sync for Evidences
   useEffect(() => {
@@ -58,7 +66,6 @@ function MainApp() {
         const status = (['Completo', 'Parcial', 'Pendiente'].includes(data.status) ? data.status : 'Pendiente') as EvidenceStatus;
         const supportLink = data.supportLink ? String(data.supportLink).trim() : '';
         const date = data.date ? String(data.date).trim() : '';
-        const source = data.source ? String(data.source).trim() : '';
         
         // Clasificaciones: Mapeo seguro
         let classifications: EvidenceClassification[] = [];
@@ -104,7 +111,6 @@ function MainApp() {
           years: yearsField,
           programs,
           tags,
-          source,
           createdAt
         } as Evidence;
       });
@@ -265,27 +271,41 @@ function MainApp() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-900 overflow-x-hidden selection:bg-blue-100 selection:text-blue-900">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-300" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 bg-slate-900 text-white border-r border-slate-800 transition-all duration-300 z-50 flex flex-col",
-        sidebarOpen ? "w-64 md:w-72" : "w-0 md:w-20"
+        "fixed inset-y-0 left-0 bg-slate-900 text-white border-r border-slate-800 transition-all duration-500 z-50 flex flex-col shadow-2xl lg:shadow-none",
+        sidebarOpen ? "translate-x-0 w-[280px] sm:w-72" : "-translate-x-full lg:translate-x-0 lg:w-20"
       )}>
-        <div className="p-5 border-b border-slate-800 shrink-0 flex items-center justify-between">
-          <Logo variant="dark" showText={sidebarOpen} className={cn("transition-all duration-300", !sidebarOpen && "justify-center")} />
+        <div className="p-6 border-b border-slate-800 shrink-0 flex items-center justify-between">
+          <Logo variant="dark" showText={sidebarOpen || window.innerWidth >= 1024} className={cn("transition-all duration-300", !sidebarOpen && "lg:justify-center")} />
+          <button 
+            onClick={() => setSidebarOpen(false)} 
+            className="lg:hidden p-2 hover:bg-slate-800 rounded-xl text-slate-400 transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
 
-        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto scrollbar-hide">
           {sidebarOpen && (
-            <div className="px-2 mb-4 pb-4 border-b border-slate-800">
+            <div className="px-2 mb-6 pb-6 border-b border-slate-800">
               <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest mb-2">
                 {selectedProgram === 'consolidated' ? 'Modo de consulta' : 'Programa seleccionado'}
               </p>
               <p className="text-sm font-bold text-blue-400 leading-tight">
-                {selectedProgram === 'consolidated' ? 'VISTA CONSOLIDADA GENERAL' : selectedProgram}
+                {selectedProgram === 'consolidated' ? 'Vista Consolidada General' : selectedProgram}
               </p>
               <button 
                 onClick={() => setSelectedProgram(null)}
-                className="mt-3 flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-white transition-colors"
+                className="mt-4 flex items-center gap-2 text-[10px] font-bold text-slate-400 hover:text-white transition-colors"
                 title="Cambiar programa"
               >
                 <Home size={12} /> CAMBIAR SELECCIÓN
@@ -293,20 +313,23 @@ function MainApp() {
             </div>
           )}
           
-          {sidebarOpen && <div className="text-[10px] uppercase font-bold text-slate-500 mb-2 px-2 mt-4 tracking-widest">Navegación principal</div>}
-          <NavItem active={view === 'dashboard' || view === 'seguimiento'} onClick={() => setView('dashboard')} icon={<LayoutDashboard size={18} />} label="Seguimiento General" collapsed={!sidebarOpen} />
+          {sidebarOpen && <div className="text-[10px] uppercase font-bold text-slate-500 mb-3 px-2 mt-4 tracking-widest">Navegación</div>}
+          <NavItem active={view === 'dashboard' || view === 'seguimiento'} onClick={() => handleViewChange('dashboard')} icon={<LayoutDashboard size={18} />} label="Seguimiento General" collapsed={!sidebarOpen} />
           {selectedProgram !== 'consolidated' && (
-            <NavItem active={view === 'registrar'} onClick={() => { setEditingEvidence(undefined); setView('registrar'); }} icon={<Plus size={18} />} label="Registro de Evidencias" collapsed={!sidebarOpen} />
+            <NavItem active={view === 'registrar'} onClick={() => { setEditingEvidence(undefined); handleViewChange('registrar'); }} icon={<Plus size={18} />} label="Registro de Evidencias" collapsed={!sidebarOpen} />
           )}
-          <NavItem active={view === 'historial'} onClick={() => setView('historial')} icon={<History size={18} />} label="Historial" collapsed={!sidebarOpen} />
-          <NavItem active={view === 'vista-general'} onClick={() => setView('vista-general')} icon={<Table size={18} />} label="Vista General" collapsed={!sidebarOpen} />
+          <NavItem active={view === 'historial'} onClick={() => handleViewChange('historial')} icon={<History size={18} />} label="Historial" collapsed={!sidebarOpen} />
+          <NavItem active={view === 'vista-general'} onClick={() => handleViewChange('vista-general')} icon={<Table size={18} />} label="Vista General" collapsed={!sidebarOpen} />
         </nav>
       </aside>
 
       {/* Main Content */}
-      <main className={cn("flex-1 flex flex-col transition-all duration-300", sidebarOpen ? "md:ml-72" : "md:ml-20")}>
-        <header className="h-20 bg-white border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 z-40 backdrop-blur-sm bg-white/90">
-          <div className="flex items-center gap-6">
+      <main className={cn(
+        "flex-1 flex flex-col transition-all duration-500 min-w-0 md:ml-0",
+        sidebarOpen ? "lg:ml-72" : "lg:ml-20"
+      )}>
+        <header className="h-20 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40 backdrop-blur-sm bg-white/90">
+          <div className="flex items-center gap-4 sm:gap-6">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors">
               <Menu size={20} />
             </button>
@@ -343,7 +366,7 @@ function MainApp() {
           </div>
         </header>
 
-        <div className="p-8 max-w-[1400px] mx-auto w-full">
+        <div className="p-4 sm:p-8 max-w-[1400px] mx-auto w-full">
           {errorMessage && (
             <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between text-rose-700 animate-in slide-in-from-top-4 duration-500">
                <div className="flex items-center gap-3">
